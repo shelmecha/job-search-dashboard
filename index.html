@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Search Dashboard — Shelvi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0d;
+    --bg2: #111317;
+    --surface: rgba(255,255,255,0.03);
+    --surface-hover: rgba(255,255,255,0.055);
+    --border: rgba(255,255,255,0.09);
+    --border2: rgba(255,255,255,0.15);
+    --text: #f2f3f5;
+    --text2: #9aa0ab;
+    --text3: #5c6270;
+    --accent: #e8a33d;
+    --accent-soft: rgba(232,163,61,0.13);
+    --good: #38c793;
+    --good-soft: rgba(56,199,147,0.13);
+    --warn: #e8615c;
+    --warn-soft: rgba(232,97,92,0.13);
+  }
+  * , *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--text); }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 80px;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  a { color: inherit; text-decoration: none; }
+
+  /* layout */
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+  header.top {
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--bg2), var(--bg));
+  }
+  .top-inner { padding: 56px 28px 40px; max-width: 1180px; margin: 0 auto; }
+  .eyebrow {
+    font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 12px; }
+  .lede { color: var(--text2); font-size: 16px; max-width: 640px; margin-bottom: 30px; }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+  button.primary {
+    background: var(--accent); color: #1a1200; border: none; font-weight: 600; font-size: 14.5px;
+    padding: 13px 22px; border-radius: 9px; cursor: pointer; transition: transform .12s ease, filter .12s ease;
+    display: flex; align-items: center; gap: 9px;
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  button.primary:active { transform: scale(0.98); }
+  button.primary:disabled { opacity: 0.55; cursor: default; }
+  .status-line { color: var(--text3); font-size: 13.5px; }
+  .status-line b { color: var(--text2); font-weight: 600; }
+
+  .spinner {
+    width: 15px; height: 15px; border-radius: 50%;
+    border: 2px solid rgba(26,18,0,0.35); border-top-color: #1a1200;
+    animation: spin .7s linear infinite; display: none;
+  }
+  .spinner.show { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .banner {
+    margin-top: 18px; padding: 11px 16px; border-radius: 8px; font-size: 13.5px;
+    background: var(--warn-soft); color: #ffb4b0; border: 1px solid rgba(232,97,92,0.25); display: none;
+  }
+  .banner.show { display: block; }
+
+  /* stat row */
+  .stats { display: flex; gap: 34px; margin-top: 28px; flex-wrap: wrap; }
+  .stat .n { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 12.5px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+  /* role grid */
+  main { padding: 44px 0; }
+  .role-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  @media (max-width: 860px) { .role-grid { grid-template-columns: 1fr; } }
+
+  .role-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 26px; display: flex; flex-direction: column;
+  }
+  .role-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+  .rank-badge {
+    width: 34px; height: 34px; border-radius: 9px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; font-family: 'JetBrains Mono', monospace;
+  }
+  .role-title { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .role-tagline { font-size: 13.5px; color: var(--text2); margin-top: 3px; }
+  .role-detail { font-size: 13px; color: var(--text3); margin: 12px 0 16px; padding-left: 48px; }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 48px; margin-bottom: 16px; }
+  .chip {
+    font-size: 11.5px; color: var(--text2); background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border); padding: 4px 9px; border-radius: 20px;
+  }
+
+  .ext-links { display: flex; gap: 8px; padding-left: 48px; margin-bottom: 18px; flex-wrap: wrap; }
+  .ext-link {
+    font-size: 12.5px; font-weight: 500; color: var(--text2); border: 1px solid var(--border);
+    padding: 6px 11px; border-radius: 7px; transition: all .12s ease; display: flex; align-items: center; gap: 5px;
+  }
+  .ext-link:hover { border-color: var(--border2); color: var(--text); background: var(--surface-hover); }
+
+  .match-count { font-size: 12.5px; color: var(--text3); padding-left: 48px; margin-bottom: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .match-list { padding-left: 48px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .job {
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+    transition: border-color .12s ease, background .12s ease; display: block;
+  }
+  .job:hover { border-color: var(--border2); background: var(--surface-hover); }
+  .job-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .job-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
+  .ai-badge {
+    display: inline-flex; align-items: center; margin-left: 8px; font-size: 10.5px; font-weight: 600;
+    color: var(--accent); background: var(--accent-soft); border: 1px solid rgba(232,163,61,0.3);
+    padding: 2px 7px; border-radius: 20px; vertical-align: middle;
+  }
+  .job-src { font-size: 10.5px; color: var(--text3); flex: none; text-transform: uppercase; letter-spacing: 0.04em; }
+  .job-meta { font-size: 12px; color: var(--text3); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  .job-meta span:not(:last-child)::after { content: '·'; margin-left: 10px; color: var(--text3); }
+
+  .empty-state { padding-left: 48px; font-size: 13px; color: var(--text3); padding-top: 4px; padding-bottom: 4px; }
+  .skeleton { padding-left: 48px; display: flex; flex-direction: column; gap: 8px; }
+  .skel-row { height: 44px; border-radius: 10px; background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.06), rgba(255,255,255,0.03)); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  .show-more { padding-left: 48px; margin-top: 6px; }
+  .show-more button {
+    background: none; border: none; color: var(--text2); font-size: 12.5px; cursor: pointer; font-weight: 600;
+  }
+  .show-more button:hover { color: var(--text); }
+
+  footer { border-top: 1px solid var(--border); padding: 26px 0; margin-top: 20px; }
+  .footer-note { color: var(--text3); font-size: 12.5px; max-width: 760px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="eyebrow"><span class="dot"></span>Personal Job Search Dashboard</div>
+    <h1>Where the RevOps skillset actually goes</h1>
+    <p class="lede">Four target role archetypes, ranked by fit — plus a live pull of open remote roles that match each one, so you can see what's actually out there right now.</p>
+    <div class="controls">
+      <button class="primary" id="refreshBtn" onclick="runSearch()">
+        <span class="spinner" id="spinner"></span>
+        <span id="refreshLabel">Find Matching Jobs Now</span>
+      </button>
+      <span class="status-line" id="statusLine">Not run yet — click to pull live listings.</span>
+    </div>
+    <div class="banner" id="errorBanner"></div>
+    <div class="stats" id="statsRow" style="display:none;">
+      <div class="stat"><div class="n" id="statScanned">0</div><div class="l">Jobs scanned</div></div>
+      <div class="stat"><div class="n" id="statMatched">0</div><div class="l">Matched to a role</div></div>
+      <div class="stat"><div class="n" id="statSources">0</div><div class="l">Sources queried</div></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="role-grid" id="roleGrid"></div>
+</main>
+
+<footer class="wrap">
+  <p class="footer-note">
+    Live listings are pulled client-side from the Remotive, RemoteOK, and Jobicy public job APIs and scored
+    against each role's title/keyword profile — nothing is sent to a server, and nothing is stored. LinkedIn,
+    Indeed, and Google don't expose a public search API (and scraping them isn't something this tool does), so
+    each card also links straight into a pre-filled search on those boards, plus We Work Remotely, as a one-click
+    fallback. Re-run any time — results reflect what's live right now.
+  </p>
+</footer>
+
+<script>
+const ROLES = [
+  {
+    id: 'revops-architect',
+    rank: 1,
+    accent: '#e8a33d',
+    title: 'RevOps Architect / Head of RevOps',
+    tagline: 'Closest match — owns the CRM data model, workflow logic, and cross-functional process design as the actual job, not a side task.',
+    detail: 'Highest ceiling, strong remote demand — turning "we need X" into properties, triggers, and branches as a full-time mandate.',
+    primary: ['revops', 'revenue operations', 'head of revenue operations', 'revenue operations architect', 'gtm systems', 'crm architect', 'director of revenue operations'],
+    secondary: ['salesforce architect', 'hubspot architect', 'crm data model', 'lead routing', 'marketing operations', 'vp of revenue operations', 'gtm operations'],
+    remotiveQueries: ['revenue operations', 'revops'],
+    externalQuery: 'RevOps OR "Head of Revenue Operations"'
+  },
+  {
+    id: 'business-systems-analyst',
+    rank: 2,
+    accent: '#3b7cff',
+    title: 'Business Systems Analyst (CRM/Ops focus)',
+    tagline: 'Same skillset, more tactical/junior framing.',
+    detail: 'A good stepping-stone title to move externally now, without waiting for a "Head of" label.',
+    primary: ['business systems analyst', 'systems analyst', 'crm analyst', 'salesforce analyst', 'hubspot analyst', 'revops analyst'],
+    secondary: ['salesforce administrator', 'hubspot administrator', 'crm administrator', 'business systems administrator', 'crm specialist'],
+    remotiveQueries: ['business systems analyst', 'salesforce administrator'],
+    externalQuery: 'Business Systems Analyst CRM'
+  },
+  {
+    id: 'automation-consultant',
+    rank: 3,
+    accent: '#38c793',
+    title: 'Process / Workflow Automation Consultant',
+    tagline: 'The freelance/contract version of the same thing, across multiple clients’ stacks.',
+    detail: 'Higher hourly ceiling, less stability — HubSpot, Make, and n8n work across accounts instead of one employer.',
+    primary: ['automation consultant', 'workflow automation', 'process automation consultant', 'hubspot consultant', 'make.com consultant', 'n8n consultant', 'zapier consultant'],
+    secondary: ['fractional revops', 'freelance operations', 'systems consultant', 'no-code automation', 'crm consultant', 'implementation consultant'],
+    remotiveQueries: ['automation consultant', 'workflow automation'],
+    externalQuery: 'Workflow Automation Consultant HubSpot'
+  },
+  {
+    id: 'operational-excellence-lead',
+    rank: 4,
+    accent: '#c084fc',
+    title: 'Operational Excellence / Continuous Improvement Lead',
+    tagline: 'The framework-and-policy side, without necessarily building the technical logic yourself.',
+    detail: 'More senior and strategic, less hands-on — a different emphasis than the building work above, but where your current title already points.',
+    primary: ['operational excellence', 'continuous improvement lead', 'process improvement lead', 'ops excellence'],
+    secondary: ['lean six sigma', 'business process lead', 'operational excellence manager', 'continuous improvement manager', 'process excellence'],
+    remotiveQueries: ['operational excellence', 'continuous improvement'],
+    externalQuery: 'Operational Excellence Continuous Improvement Lead'
+  }
+];
+
+const GENERAL_KEYWORDS = ['revops','revenue operations','business systems','operations manager','operations lead','process improvement','workflow automation','marketing operations manager','sales operations manager','crm manager','crm administrator','crm lead','systems administrator','operations analyst'];
+const AI_TOOLING_KEYWORDS = ['claude code', 'claude', 'anthropic', 'clay.com', 'chatgpt', 'gpt-4', 'gpt4', 'openai', 'ai agent', 'ai agents', 'llm workflow', 'cursor ai'];
+const MIN_SCORE = 3;
+const MAX_SHOWN = 6;
+
+let expandedState = {};
+
+function stripHtml(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html || '';
+  return (div.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+function scoreJobForRole(text, role) {
+  let score = 0;
+  for (const kw of role.primary) {
+    if (text.title.includes(kw)) score += 4;
+    else if (text.tags.includes(kw)) score += 2;
+    else if (text.desc.includes(kw)) score += 1;
+  }
+  for (const kw of role.secondary) {
+    if (text.title.includes(kw)) score += 2;
+    else if (text.tags.includes(kw)) score += 1;
+    else if (text.desc.includes(kw)) score += 0.5;
+  }
+  return score;
+}
+
+function aiTooling(text) {
+  let bonus = 0, hit = false;
+  for (const kw of AI_TOOLING_KEYWORDS) {
+    if (text.title.includes(kw)) { bonus += 3; hit = true; }
+    else if (text.tags.includes(kw)) { bonus += 1.5; hit = true; }
+    else if (text.desc.includes(kw)) { bonus += 1; hit = true; }
+  }
+  return { bonus, hit };
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  if (isNaN(then)) return '';
+  const diffMs = Date.now() - then;
+  const days = Math.floor(diffMs / 86400000);
+  if (days <= 0) return 'today';
+  if (days === 1) return '1 day ago';
+  if (days < 30) return days + ' days ago';
+  const months = Math.floor(days / 30);
+  return months === 1 ? '1 month ago' : months + ' months ago';
+}
+
+function formatSalary(job) {
+  if (job.salaryText) return job.salaryText;
+  if (job.salaryMin && job.salaryMax) return `$${Math.round(job.salaryMin/1000)}k–$${Math.round(job.salaryMax/1000)}k`;
+  return null;
+}
+
+async function fetchRemotive() {
+  const queries = [...new Set(ROLES.flatMap(r => r.remotiveQueries))];
+  const results = await Promise.allSettled(
+    queries.map(q => fetch(`https://remotive.com/api/remote-jobs?search=${encodeURIComponent(q)}`).then(r => {
+      if (!r.ok) throw new Error('bad status ' + r.status);
+      return r.json();
+    }))
+  );
+  const seen = new Map();
+  for (const res of results) {
+    if (res.status !== 'fulfilled') continue;
+    for (const j of (res.value.jobs || [])) {
+      if (seen.has(j.id)) continue;
+      seen.set(j.id, {
+        id: 'remotive-' + j.id,
+        title: j.title,
+        company: j.company_name,
+        url: j.url,
+        location: j.candidate_required_location || 'Remote',
+        salaryText: j.salary || null,
+        date: j.publication_date,
+        source: 'Remotive',
+        _text: {
+          title: (j.title || '').toLowerCase(),
+          tags: [j.category, ...(j.tags||[])].join(' ').toLowerCase(),
+          desc: stripHtml(j.description).toLowerCase().slice(0, 2000)
+        }
+      });
+    }
+  }
+  const anyOk = results.some(r => r.status === 'fulfilled');
+  if (!anyOk && results.length) throw new Error('Remotive unreachable');
+  return Array.from(seen.values());
+}
+
+async function fetchRemoteOK() {
+  const r = await fetch('https://remoteok.com/api');
+  if (!r.ok) throw new Error('bad status ' + r.status);
+  const data = await r.json();
+  return data
+    .filter(j => j.position)
+    .map(j => ({
+      id: 'remoteok-' + j.id,
+      title: j.position,
+      company: j.company,
+      url: j.url || j.apply_url,
+      location: j.location || 'Remote',
+      salaryMin: j.salary_min,
+      salaryMax: j.salary_max,
+      date: j.date,
+      source: 'RemoteOK',
+      _text: {
+        title: (j.position || '').toLowerCase(),
+        tags: (j.tags || []).join(' ').toLowerCase(),
+        desc: stripHtml(j.description).toLowerCase().slice(0, 2000)
+      }
+    }));
+}
+
+async function fetchJobicy() {
+  const r = await fetch('https://jobicy.com/api/v2/remote-jobs?count=50');
+  if (!r.ok) throw new Error('bad status ' + r.status);
+  const data = await r.json();
+  return (data.jobs || []).map(j => ({
+    id: 'jobicy-' + j.id,
+    title: j.jobTitle,
+    company: j.companyName,
+    url: j.url,
+    location: j.jobGeo || 'Remote',
+    salaryMin: j.salaryMin,
+    salaryMax: j.salaryMax,
+    date: j.pubDate,
+    source: 'Jobicy',
+    _text: {
+      title: (j.jobTitle || '').toLowerCase(),
+      tags: [...(j.jobIndustry||[]), ...(j.jobType||[]), j.jobLevel].join(' ').toLowerCase(),
+      desc: stripHtml(j.jobDescription || j.jobExcerpt).toLowerCase().slice(0, 2000)
+    }
+  }));
+}
+
+function classify(jobs) {
+  const buckets = {};
+  ROLES.forEach(r => buckets[r.id] = []);
+  buckets.general = [];
+
+  for (const job of jobs) {
+    const { bonus, hit } = aiTooling(job._text);
+    let best = null, bestScore = 0;
+    for (const role of ROLES) {
+      const s = scoreJobForRole(job._text, role) + bonus;
+      if (s > bestScore) { bestScore = s; best = role; }
+    }
+    if (best && bestScore >= MIN_SCORE) {
+      buckets[best.id].push({ ...job, _score: bestScore, _ai: hit });
+    } else if (GENERAL_KEYWORDS.some(k => job._text.title.includes(k))) {
+      buckets.general.push({ ...job, _score: bestScore, _ai: hit });
+    }
+  }
+  Object.values(buckets).forEach(list =>
+    list.sort((a, b) => b._score - a._score || new Date(b.date) - new Date(a.date))
+  );
+  return buckets;
+}
+
+function externalLinks(role) {
+  const q = encodeURIComponent(role.externalQuery);
+  return [
+    { label: 'LinkedIn', url: `https://www.linkedin.com/jobs/search/?keywords=${q}&f_WT=2` },
+    { label: 'Indeed', url: `https://www.indeed.com/jobs?q=${q}&remotejob=1` },
+    { label: 'Google Jobs', url: `https://www.google.com/search?q=${q}+remote&ibp=htl;jobs` },
+    { label: 'We Work Remotely', url: `https://weworkremotely.com/remote-jobs/search?term=${encodeURIComponent(role.remotiveQueries[0])}` }
+  ];
+}
+
+function jobRow(job) {
+  const meta = [job.company, job.location, timeAgo(job.date), formatSalary(job)].filter(Boolean);
+  return `<a class="job" href="${job.url}" target="_blank" rel="noopener">
+    <div class="job-top">
+      <span class="job-title">${escapeHtml(job.title)}${job._ai ? '<span class="ai-badge">🤖 AI tooling</span>' : ''}</span>
+      <span class="job-src">${job.source}</span>
+    </div>
+    <div class="job-meta">${meta.map(m => `<span>${escapeHtml(String(m))}</span>`).join('')}</div>
+  </a>`;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderSkeleton() {
+  const grid = document.getElementById('roleGrid');
+  grid.innerHTML = ROLES.map(role => roleCardShell(role, `
+    <div class="skeleton">
+      <div class="skel-row"></div>
+      <div class="skel-row"></div>
+      <div class="skel-row"></div>
+    </div>
+  `)).join('');
+}
+
+function roleCardShell(role, bodyHtml) {
+  const links = externalLinks(role);
+  return `
+  <div class="role-card">
+    <div class="role-head">
+      <div class="rank-badge" style="background:${role.accent}22; color:${role.accent};">#${role.rank}</div>
+      <div>
+        <div class="role-title">${escapeHtml(role.title)}</div>
+        <div class="role-tagline">${escapeHtml(role.tagline)}</div>
+      </div>
+    </div>
+    <div class="role-detail">${escapeHtml(role.detail)}</div>
+    <div class="chip-row">${role.primary.slice(0,4).map(k => `<span class="chip">${escapeHtml(k)}</span>`).join('')}</div>
+    <div class="ext-links">${links.map(l => `<a class="ext-link" href="${l.url}" target="_blank" rel="noopener">${l.label} ↗</a>`).join('')}</div>
+    <div id="body-${role.id}">${bodyHtml}</div>
+  </div>`;
+}
+
+function renderResults(buckets) {
+  const grid = document.getElementById('roleGrid');
+  grid.innerHTML = ROLES.map(role => {
+    const list = buckets[role.id] || [];
+    const shown = expandedState[role.id] ? list : list.slice(0, MAX_SHOWN);
+    let body;
+    if (list.length === 0) {
+      body = `<div class="match-count">0 live matches</div>
+        <div class="empty-state">Nothing scoring as a direct hit right now across Remotive, RemoteOK, or Jobicy — this role type is niche for job-board APIs. Use the search links above to check LinkedIn/Indeed/Google directly.</div>`;
+    } else {
+      body = `<div class="match-count">${list.length} live match${list.length===1?'':'es'}</div>
+        <div class="match-list">${shown.map(jobRow).join('')}</div>`;
+      if (list.length > MAX_SHOWN) {
+        body += `<div class="show-more"><button onclick="toggleExpand('${role.id}')">${expandedState[role.id] ? 'Show less' : `Show ${list.length - MAX_SHOWN} more`}</button></div>`;
+      }
+    }
+    return roleCardShell(role, body);
+  }).join('');
+
+  const general = buckets.general || [];
+  if (general.length) {
+    grid.innerHTML += `
+    <div class="role-card" style="grid-column: 1 / -1;">
+      <div class="role-head">
+        <div class="rank-badge" style="background:rgba(255,255,255,0.06); color:var(--text2);">+</div>
+        <div>
+          <div class="role-title">Other RevOps / CRM / Ops-adjacent openings</div>
+          <div class="role-tagline">Didn't score cleanly into one archetype above, but still ops/CRM/RevOps flavored — worth a scan.</div>
+        </div>
+      </div>
+      <div class="match-count">${general.length} match${general.length===1?'':'es'}</div>
+      <div class="match-list">${general.slice(0, MAX_SHOWN).map(jobRow).join('')}</div>
+    </div>`;
+  }
+}
+
+window.toggleExpand = function(roleId) {
+  expandedState[roleId] = !expandedState[roleId];
+  renderResults(window._lastBuckets);
+};
+
+async function runSearch() {
+  const btn = document.getElementById('refreshBtn');
+  const spinner = document.getElementById('spinner');
+  const label = document.getElementById('refreshLabel');
+  const status = document.getElementById('statusLine');
+  const banner = document.getElementById('errorBanner');
+
+  const SOURCES = [
+    { name: 'Remotive', fetch: fetchRemotive },
+    { name: 'RemoteOK', fetch: fetchRemoteOK },
+    { name: 'Jobicy', fetch: fetchJobicy }
+  ];
+
+  btn.disabled = true;
+  spinner.classList.add('show');
+  label.textContent = 'Searching live listings…';
+  banner.classList.remove('show');
+  status.textContent = `Querying ${SOURCES.map(s => s.name).join(' + ')}…`;
+  renderSkeleton();
+
+  const settled = await Promise.allSettled(SOURCES.map(s => s.fetch()));
+
+  const failures = [];
+  let jobs = [];
+  settled.forEach((res, i) => {
+    if (res.status === 'fulfilled') jobs = jobs.concat(res.value);
+    else failures.push(SOURCES[i].name);
+  });
+
+  if (failures.length) {
+    banner.textContent = `Couldn't reach: ${failures.join(', ')}. Showing results from the remaining source${failures.length < SOURCES.length ? '' : 's'}.`;
+    banner.classList.add('show');
+  }
+
+  const buckets = classify(jobs);
+  window._lastBuckets = buckets;
+  expandedState = {};
+  renderResults(buckets);
+
+  const matched = ROLES.reduce((sum, r) => sum + (buckets[r.id]?.length || 0), 0) + (buckets.general?.length || 0);
+  document.getElementById('statScanned').textContent = jobs.length;
+  document.getElementById('statMatched').textContent = matched;
+  document.getElementById('statSources').textContent = (SOURCES.length - failures.length) + ' / ' + SOURCES.length;
+  document.getElementById('statsRow').style.display = 'flex';
+
+  const now = new Date();
+  status.innerHTML = `Last run <b>${now.toLocaleTimeString()}</b> — scanned <b>${jobs.length}</b> live listings.`;
+
+  btn.disabled = false;
+  spinner.classList.remove('show');
+  label.textContent = 'Refresh Matches';
+}
+
+renderSkeleton();
+document.getElementById('statusLine').textContent = 'Running first search…';
+runSearch();
+</script>
+</body>
+</html>
