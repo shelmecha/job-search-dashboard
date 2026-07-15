@@ -6,192 +6,356 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Job Search Dashboard — Shelvi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* ============================================================
+     PLAYFUL GEOMETRIC — design tokens
+  ============================================================ */
   :root {
     color-scheme: light;
-    --bg: #ffffff;
-    --bg2: #fafafa;
-    --surface: #ffffff;
-    --surface-hover: #f7f7f8;
-    --border: #e8e8ea;
-    --border2: #d6d6da;
-    --text: #18181b;
-    --text2: #6b7280;
-    --text3: #a1a1aa;
-    --accent: #b45309;
-    --accent-soft: rgba(180,83,9,0.08);
-    --good: #047857;
-    --good-soft: rgba(4,120,87,0.07);
-    --warn: #b91c1c;
-    --warn-soft: rgba(185,28,28,0.06);
+    --bg: #FFFDF5;             /* warm cream */
+    --fg: #1E293B;             /* slate 800 */
+    --muted: #F1F5F9;
+    --muted-fg: #64748B;
+    --accent: #8B5CF6;         /* vivid violet */
+    --accent-fg: #FFFFFF;
+    --secondary: #F472B6;      /* hot pink */
+    --tertiary: #FBBF24;       /* amber */
+    --quaternary: #34D399;     /* mint */
+    --border: #E2E8F0;
+    --card: #FFFFFF;
+    --r-sm: 8px;
+    --r-md: 16px;
+    --r-lg: 24px;
+    --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --shadow-pop: 4px 4px 0px 0px var(--fg);
+    --shadow-card: 8px 8px 0px 0px var(--border);
+
+    /* legacy aliases used by JS-generated inline styles */
+    --text: #1E293B;
+    --text2: #64748B;
+    --text3: #94A3B8;
+    --good: #059669;
+    --warn: #B45309;
   }
   * , *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: var(--bg); color: var(--text); }
+  html, body { background: var(--bg); color: var(--fg); }
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 15px;
-    line-height: 1.55;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 15.5px;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     padding-bottom: 80px;
+    overflow-x: hidden;
   }
-  .mono { font-family: 'JetBrains Mono', monospace; }
   a { color: inherit; text-decoration: none; }
+  h1, .role-title, .stat .n, .vtab, .eyebrow { font-family: 'Outfit', system-ui, sans-serif; }
 
-  /* layout */
+  /* ============================================================
+     LAYOUT + HERO
+  ============================================================ */
   .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
   header.top {
-    border-bottom: 1px solid var(--border);
-    background: var(--bg2);
+    border-bottom: 2px solid var(--fg);
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--border) 1.5px, transparent 1.5px);
+    background-size: 22px 22px;
+    position: relative;
+    overflow: hidden;
   }
-  .top-inner { padding: 56px 28px 40px; max-width: 1180px; margin: 0 auto; }
-  .eyebrow {
-    font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--accent); font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
-  }
-  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-  h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 12px; }
-  .lede { color: var(--text2); font-size: 16px; max-width: 640px; margin-bottom: 30px; }
+  .top-inner { padding: 64px 28px 48px; max-width: 1180px; margin: 0 auto; position: relative; z-index: 1; }
 
-  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
-  button.primary {
-    background: var(--text); color: #fff; border: none; font-weight: 600; font-size: 14.5px;
-    padding: 13px 22px; border-radius: 9px; cursor: pointer; transition: transform .12s ease, filter .12s ease;
-    display: flex; align-items: center; gap: 9px;
+  /* decorative shape layer (aria-hidden, pointer-transparent) */
+  .deco { position: absolute; pointer-events: none; z-index: 0; }
+  .deco-circle {
+    width: 300px; height: 300px; border-radius: 50%;
+    background: var(--tertiary); opacity: 0.5;
+    top: -90px; left: -70px;
   }
-  button.primary:hover { filter: brightness(1.08); }
-  button.primary:active { transform: scale(0.98); }
-  button.primary:disabled { opacity: 0.55; cursor: default; }
-  .status-line { color: var(--text3); font-size: 13.5px; }
-  .status-line b { color: var(--text2); font-weight: 600; }
+  .deco-ring {
+    width: 140px; height: 140px; border-radius: 50%;
+    border: 14px solid var(--quaternary); opacity: 0.55;
+    right: 8%; bottom: -55px;
+  }
+  .deco-tri {
+    width: 0; height: 0;
+    border-left: 30px solid transparent; border-right: 30px solid transparent;
+    border-bottom: 52px solid var(--secondary);
+    top: 44px; right: 16%; transform: rotate(18deg); opacity: 0.85;
+  }
+  .deco-dot { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); right: 7%; top: 130px; opacity: 0.8; }
+  .deco-squiggle {
+    right: 24%; top: 82px; width: 120px; height: 12px; opacity: 0.9;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='12' viewBox='0 0 120 12'%3E%3Cpath d='M0 6 Q 10 0 20 6 T 40 6 T 60 6 T 80 6 T 100 6 T 120 6' fill='none' stroke='%238B5CF6' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat;
+  }
+
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 800;
+    background: var(--accent); color: var(--accent-fg);
+    border: 2px solid var(--fg); border-radius: 999px;
+    padding: 7px 16px; margin-bottom: 22px;
+    box-shadow: 3px 3px 0px 0px var(--fg);
+    transform: rotate(-1.5deg);
+  }
+  .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tertiary); border: 1.5px solid var(--fg); }
+
+  h1 { font-size: clamp(32px, 4.5vw, 46px); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 14px; line-height: 1.12; }
+  .marker {
+    display: inline-block; position: relative; white-space: nowrap;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='10' viewBox='0 0 110 10'%3E%3Cpath d='M0 5 Q 9 0 18 5 T 36 5 T 54 5 T 72 5 T 90 5 T 110 5' fill='none' stroke='%23F472B6' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E") repeat-x left bottom / auto 9px;
+    padding-bottom: 12px;
+  }
+  .lede { color: var(--muted-fg); font-size: 16.5px; max-width: 660px; margin-bottom: 32px; font-weight: 500; }
+
+  /* ============================================================
+     BUTTONS — the candy button
+  ============================================================ */
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+  button.primary {
+    background: var(--accent); color: var(--accent-fg);
+    border: 2px solid var(--fg); border-radius: 999px;
+    font-family: inherit; font-weight: 700; font-size: 15px;
+    padding: 13px 24px; cursor: pointer; min-height: 48px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: var(--shadow-pop);
+    transition: transform .3s var(--bounce), box-shadow .3s var(--bounce);
+  }
+  button.primary:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0px 0px var(--fg); }
+  button.primary:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px 0px var(--fg); }
+  button.primary:disabled { opacity: 0.6; cursor: default; transform: none; box-shadow: var(--shadow-pop); }
+  .btn-arrow {
+    width: 26px; height: 26px; border-radius: 50%; background: #fff; color: var(--fg);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; flex: none;
+    transition: transform .3s var(--bounce);
+  }
+  button.primary:hover .btn-arrow { transform: translateX(3px); }
+  .status-line { color: var(--muted-fg); font-size: 13.5px; font-weight: 500; }
+  .status-line b { color: var(--fg); font-weight: 700; }
 
   .spinner {
-    width: 15px; height: 15px; border-radius: 50%;
-    border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff;
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2.5px solid rgba(255,255,255,0.4); border-top-color: #fff;
     animation: spin .7s linear infinite; display: none;
   }
   .spinner.show { display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .banner {
-    margin-top: 18px; padding: 11px 16px; border-radius: 8px; font-size: 13.5px;
-    background: var(--warn-soft); color: var(--warn); border: 1px solid rgba(185,28,28,0.18); display: none;
+    margin-top: 20px; padding: 12px 18px; font-size: 13.5px; font-weight: 600;
+    background: var(--tertiary); color: var(--fg);
+    border: 2px solid var(--fg); border-radius: var(--r-md);
+    box-shadow: var(--shadow-pop); display: none;
   }
   .banner.show { display: block; }
 
-  /* stat row */
-  .stats { display: flex; gap: 34px; margin-top: 28px; flex-wrap: wrap; }
-  .stat .n { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .stat .l { font-size: 12.5px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+  /* ============================================================
+     FILTERS + STATS — sticker pills and tiles
+  ============================================================ */
+  .filter-row { display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+  .toggle {
+    background: transparent; color: var(--fg); border: 2px solid var(--fg);
+    font-size: 13.5px; font-weight: 700; padding: 9px 18px; border-radius: 999px;
+    cursor: pointer; font-family: inherit; min-height: 42px;
+    transition: all .3s var(--bounce);
+  }
+  .toggle:hover { background: var(--tertiary); }
+  .toggle.on {
+    background: var(--quaternary); color: var(--fg);
+    box-shadow: 3px 3px 0px 0px var(--fg); transform: translate(-1px, -1px);
+  }
+  .toggle.on::before { content: '✓ '; font-weight: 800; }
 
-  /* role grid */
-  main { padding: 44px 0; }
-  .role-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .stats { display: flex; gap: 16px; margin-top: 28px; flex-wrap: wrap; }
+  .stat {
+    background: var(--card); border: 2px solid var(--fg); border-radius: var(--r-md);
+    padding: 12px 20px; box-shadow: var(--shadow-pop);
+  }
+  .stat:nth-child(1) { transform: rotate(-1deg); }
+  .stat:nth-child(2) { transform: rotate(1deg); }
+  .stat:nth-child(3) { transform: rotate(-0.5deg); }
+  .stat .n { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .stat:nth-child(1) .n { color: var(--accent); }
+  .stat:nth-child(2) .n { color: #DB2777; }
+  .stat:nth-child(3) .n { color: #059669; }
+  .stat .l { font-size: 11.5px; color: var(--muted-fg); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
+
+  /* ============================================================
+     VIEW TABS
+  ============================================================ */
+  main { padding: 48px 0; }
+  .view-tabs { display: flex; gap: 12px; margin-bottom: 30px; flex-wrap: wrap; }
+  .vtab {
+    padding: 11px 22px; border-radius: 999px; border: 2px solid var(--fg);
+    background: var(--card); color: var(--fg); font-weight: 700; font-size: 14.5px;
+    cursor: pointer; min-height: 46px;
+    transition: all .3s var(--bounce);
+  }
+  .vtab:hover { background: var(--tertiary); }
+  .vtab.on {
+    background: var(--accent); color: var(--accent-fg);
+    box-shadow: var(--shadow-pop); transform: translate(-1px, -1px);
+  }
+
+  /* ============================================================
+     STICKER CARDS
+  ============================================================ */
+  .role-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 28px; }
   @media (max-width: 860px) { .role-grid { grid-template-columns: 1fr; } }
 
   .role-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-    padding: 26px; display: flex; flex-direction: column;
+    background: var(--card); border: 2px solid var(--fg); border-radius: var(--r-lg);
+    padding: 28px; display: flex; flex-direction: column;
+    box-shadow: var(--shadow-card);
+    transition: transform .3s var(--bounce), box-shadow .3s var(--bounce);
+    animation: pop .45s var(--bounce) both;
   }
-  .role-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+  .role-card:nth-child(2) { animation-delay: .05s; }
+  .role-card:nth-child(3) { animation-delay: .1s; }
+  .role-card:nth-child(4) { animation-delay: .15s; }
+  .role-card:nth-child(5) { animation-delay: .2s; }
+  .role-card:nth-child(6) { animation-delay: .25s; }
+  .role-card:nth-child(7) { animation-delay: .3s; }
+  .role-card:nth-child(8) { animation-delay: .35s; }
+  .role-card:nth-child(9) { animation-delay: .4s; }
+  @keyframes pop { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+  .role-card:hover { transform: rotate(-0.6deg) scale(1.01); }
+  .role-card.featured { box-shadow: 8px 8px 0px 0px var(--secondary); }
+
+  .role-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
   .rank-badge {
-    width: 34px; height: 34px; border-radius: 9px; flex: none;
+    width: 44px; height: 44px; border-radius: 50%; flex: none;
     display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 14px; font-family: 'JetBrains Mono', monospace;
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 15px;
+    border: 2px solid var(--fg); box-shadow: 2px 2px 0px 0px var(--fg);
   }
-  .role-title { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
-  .role-tagline { font-size: 13.5px; color: var(--text2); margin-top: 3px; }
-  .role-detail { font-size: 13px; color: var(--text3); margin: 12px 0 16px; padding-left: 48px; }
+  .role-card:hover .rank-badge { animation: wiggle .45s var(--bounce); }
+  @keyframes wiggle { 0% { transform: rotate(0); } 30% { transform: rotate(5deg); } 60% { transform: rotate(-5deg); } 100% { transform: rotate(0); } }
+  .role-title { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+  .role-tagline { font-size: 13.5px; color: var(--muted-fg); margin-top: 3px; font-weight: 500; }
+  .role-detail { font-size: 13.5px; color: var(--muted-fg); margin: 12px 0 16px; padding-left: 60px; }
 
-  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 48px; margin-bottom: 16px; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 7px; padding-left: 60px; margin-bottom: 16px; }
   .chip {
-    font-size: 11.5px; color: var(--text2); background: #f4f4f5;
-    border: 1px solid var(--border); padding: 4px 9px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 700; color: var(--muted-fg); background: var(--muted);
+    border: 2px solid var(--border); padding: 4px 11px; border-radius: 999px;
   }
 
-  .ext-links { display: flex; gap: 8px; padding-left: 48px; margin-bottom: 18px; flex-wrap: wrap; }
+  .ext-links { display: flex; gap: 9px; padding-left: 60px; margin-bottom: 20px; flex-wrap: wrap; }
   .ext-link {
-    font-size: 12.5px; font-weight: 500; color: var(--text2); border: 1px solid var(--border);
-    padding: 6px 11px; border-radius: 7px; transition: all .12s ease; display: flex; align-items: center; gap: 5px;
+    font-size: 12.5px; font-weight: 700; color: var(--fg);
+    border: 2px solid var(--fg); border-radius: 999px;
+    padding: 7px 14px; display: flex; align-items: center; gap: 5px;
+    transition: all .3s var(--bounce); background: var(--card);
   }
-  .ext-link:hover { border-color: var(--border2); color: var(--text); background: var(--surface-hover); }
+  .ext-link:hover { background: var(--tertiary); transform: translate(-1px, -1px); box-shadow: 2px 2px 0px 0px var(--fg); }
 
-  .match-count { font-size: 12.5px; color: var(--text3); padding-left: 48px; margin-bottom: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-  .match-list { padding-left: 48px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .match-count {
+    font-size: 12px; color: var(--muted-fg); padding-left: 60px; margin-bottom: 12px;
+    font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em;
+    font-family: 'Outfit', sans-serif;
+  }
+  .match-list { padding-left: 60px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+
+  /* job rows — mini stickers */
   .job {
-    border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
-    transition: border-color .12s ease, background .12s ease; display: block;
+    background: var(--card); border: 2px solid var(--border); border-radius: var(--r-md);
+    padding: 13px 16px; display: block;
+    transition: all .3s var(--bounce);
   }
-  .job:hover { border-color: var(--border2); background: var(--surface-hover); }
+  .job:hover {
+    border-color: var(--fg); transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0px 0px var(--fg);
+  }
   .job-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
-  .job-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
-  .ai-badge {
-    display: inline-flex; align-items: center; margin-left: 8px; font-size: 10.5px; font-weight: 600;
-    color: var(--accent); background: var(--accent-soft); border: 1px solid rgba(180,83,9,0.2);
-    padding: 2px 7px; border-radius: 20px; vertical-align: middle;
-  }
-  .flag-badge {
-    display: inline-flex; align-items: center; margin-left: 6px; font-size: 10.5px; font-weight: 600;
-    padding: 2px 7px; border-radius: 20px; vertical-align: middle;
-  }
-  .flag-badge.ww { color: var(--good); background: var(--good-soft); border: 1px solid rgba(4,120,87,0.2); }
-  .flag-badge.ct { color: #1d4ed8; background: rgba(29,78,216,0.06); border: 1px solid rgba(29,78,216,0.2); }
+  .job-title { font-size: 14px; font-weight: 700; color: var(--fg); }
+  .job-src { font-size: 10.5px; color: var(--muted-fg); flex: none; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+  .job-meta { font-size: 12.5px; color: var(--muted-fg); margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px 10px; font-weight: 500; }
+  .job-meta span:not(:last-child)::after { content: '·'; margin-left: 10px; }
 
-  .filter-row { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
-  .toggle {
-    background: var(--surface); color: var(--text2); border: 1px solid var(--border);
-    font-size: 13px; font-weight: 600; padding: 8px 15px; border-radius: 20px; cursor: pointer;
-    font-family: inherit; transition: all .12s ease;
+  /* badges — confetti pills */
+  .ai-badge, .flag-badge {
+    display: inline-flex; align-items: center; margin-left: 7px;
+    font-size: 10.5px; font-weight: 800; letter-spacing: 0.02em;
+    padding: 2px 9px; border-radius: 999px; vertical-align: middle;
+    border: 1.5px solid var(--fg); color: var(--fg);
   }
-  .toggle:hover { border-color: var(--border2); color: var(--text); }
-  .toggle.on { color: var(--good); background: var(--good-soft); border-color: rgba(4,120,87,0.35); }
+  .ai-badge { background: var(--tertiary); }
+  .flag-badge.ww { background: var(--quaternary); }
+  .flag-badge.ct { background: var(--secondary); }
 
-  .view-tabs { display: flex; gap: 8px; margin-bottom: 26px; }
-  .vtab {
-    padding: 9px 17px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface);
-    color: var(--text2); font-weight: 600; font-size: 13.5px; cursor: pointer; font-family: inherit;
-    transition: all .12s ease;
-  }
-  .vtab:hover { border-color: var(--border2); color: var(--text); }
-  .vtab.on { background: var(--text); color: #fff; border-color: var(--text); }
-
-  .all-controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  /* ============================================================
+     BROWSE-ALL CONTROLS — inputs
+  ============================================================ */
+  .all-controls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
   .search-input {
-    flex: 1; min-width: 220px; max-width: 460px; padding: 11px 14px;
-    border: 1px solid var(--border); border-radius: 9px; font: inherit; font-size: 14px;
-    color: var(--text); background: var(--surface); outline: none;
+    flex: 1; min-width: 220px; max-width: 460px; padding: 12px 16px;
+    border: 2px solid #CBD5E1; border-radius: var(--r-md);
+    font: inherit; font-size: 14.5px; font-weight: 500;
+    color: var(--fg); background: var(--card); outline: none; min-height: 48px;
+    transition: border-color .2s ease, box-shadow .3s var(--bounce);
   }
-  .search-input:focus { border-color: var(--border2); }
-  .job-src { font-size: 10.5px; color: var(--text3); flex: none; text-transform: uppercase; letter-spacing: 0.04em; }
-  .job-meta { font-size: 12px; color: var(--text3); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
-  .job-meta span:not(:last-child)::after { content: '·'; margin-left: 10px; color: var(--text3); }
+  .search-input:focus { border-color: var(--accent); box-shadow: 4px 4px 0px 0px var(--accent); }
 
-  .empty-state { padding-left: 48px; font-size: 13px; color: var(--text3); padding-top: 4px; padding-bottom: 4px; }
-  .skeleton { padding-left: 48px; display: flex; flex-direction: column; gap: 8px; }
-  .skel-row { height: 44px; border-radius: 10px; background: linear-gradient(90deg, rgba(0,0,0,0.03), rgba(0,0,0,0.06), rgba(0,0,0,0.03)); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+  .empty-state { padding-left: 60px; font-size: 13.5px; color: var(--muted-fg); padding-top: 4px; padding-bottom: 4px; font-weight: 500; }
+  .skeleton { padding-left: 60px; display: flex; flex-direction: column; gap: 10px; }
+  .skel-row {
+    height: 48px; border-radius: var(--r-md); border: 2px dashed var(--border);
+    background: linear-gradient(90deg, rgba(30,41,59,0.03), rgba(30,41,59,0.07), rgba(30,41,59,0.03));
+    background-size: 200% 100%; animation: shimmer 1.4s infinite;
+  }
   @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-  .show-more { padding-left: 48px; margin-top: 6px; }
+  .show-more { padding-left: 60px; margin-top: 10px; }
   .show-more button {
-    background: none; border: none; color: var(--text2); font-size: 12.5px; cursor: pointer; font-weight: 600;
+    background: var(--card); border: 2px solid var(--fg); border-radius: 999px;
+    color: var(--fg); font-size: 12.5px; cursor: pointer; font-weight: 700;
+    padding: 8px 16px; font-family: inherit;
+    transition: all .3s var(--bounce);
   }
-  .show-more button:hover { color: var(--text); }
+  .show-more button:hover { background: var(--tertiary); transform: translate(-1px,-1px); box-shadow: 2px 2px 0px 0px var(--fg); }
 
-  footer { border-top: 1px solid var(--border); padding: 26px 0; margin-top: 20px; }
-  .footer-note { color: var(--text3); font-size: 12.5px; max-width: 760px; }
+  footer { border-top: 2px dashed var(--fg); padding: 28px 0; margin-top: 28px; }
+  .footer-note { color: var(--muted-fg); font-size: 12.5px; max-width: 780px; font-weight: 500; }
+
+  /* ============================================================
+     FOCUS, MOTION, MOBILE
+  ============================================================ */
+  button:focus-visible, a:focus-visible, .search-input:focus-visible {
+    outline: 3px solid var(--accent); outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    .role-card:hover, .job:hover, .toggle.on, .vtab.on, button.primary:hover { transform: none; }
+  }
+  @media (max-width: 860px) {
+    .deco { display: none; }
+    .role-card { box-shadow: 4px 4px 0px 0px var(--border); padding: 22px; }
+    .role-card.featured { box-shadow: 4px 4px 0px 0px var(--secondary); }
+    .stat, .banner, .eyebrow, button.primary { box-shadow: 2px 2px 0px 0px var(--fg); }
+    .role-detail, .chip-row, .ext-links, .match-count, .match-list, .empty-state, .skeleton, .show-more { padding-left: 0; }
+    .stats { gap: 12px; }
+  }
 </style>
 </head>
 <body>
 
 <header class="top">
+  <div class="deco deco-circle" aria-hidden="true"></div>
+  <div class="deco deco-ring" aria-hidden="true"></div>
+  <div class="deco deco-tri" aria-hidden="true"></div>
+  <div class="deco deco-dot" aria-hidden="true"></div>
+  <div class="deco deco-squiggle" aria-hidden="true"></div>
   <div class="top-inner">
     <div class="eyebrow"><span class="dot"></span>Personal Job Search Dashboard</div>
-    <h1>Where the RevOps skillset actually goes</h1>
+    <h1>Where the RevOps skillset <span class="marker">actually goes</span></h1>
     <p class="lede">Eight target role archetypes — RevOps and systems work at the top, plus analytics, digital marketing, project delivery, and ops support. Every listing is remote-only, pulled live from job boards, the career pages of 31 remote-friendly companies, and open freelance projects on Freelancer.com. Contractor and worldwide-open roles rank higher and get badges.</p>
     <div class="controls">
       <button class="primary" id="refreshBtn" onclick="runSearch()">
         <span class="spinner" id="spinner"></span>
         <span id="refreshLabel">Find Matching Jobs Now</span>
+        <span class="btn-arrow" aria-hidden="true">→</span>
       </button>
       <span class="status-line" id="statusLine">Not run yet — click to pull live listings.</span>
     </div>
@@ -245,7 +409,7 @@ const ROLES = [
   {
     id: 'revops-architect',
     rank: 1,
-    accent: '#b45309',
+    accent: '#8B5CF6',
     title: 'RevOps Architect / Head of RevOps',
     tagline: 'Closest match — owns the CRM data model, workflow logic, and cross-functional process design as the actual job, not a side task.',
     detail: 'Highest ceiling, strong remote demand — turning "we need X" into properties, triggers, and branches as a full-time mandate.',
@@ -257,7 +421,7 @@ const ROLES = [
   {
     id: 'business-systems-analyst',
     rank: 2,
-    accent: '#1d4ed8',
+    accent: '#F472B6',
     title: 'Business Systems Analyst (CRM/Ops focus)',
     tagline: 'Same skillset, more tactical/junior framing.',
     detail: 'A good stepping-stone title to move externally now, without waiting for a "Head of" label.',
@@ -269,7 +433,7 @@ const ROLES = [
   {
     id: 'automation-consultant',
     rank: 3,
-    accent: '#047857',
+    accent: '#FBBF24',
     title: 'Process / Workflow Automation Consultant',
     tagline: 'The freelance/contract version of the same thing, across multiple clients’ stacks.',
     detail: 'Higher hourly ceiling, less stability — HubSpot, Make, and n8n work across accounts instead of one employer.',
@@ -281,7 +445,7 @@ const ROLES = [
   {
     id: 'operational-excellence-lead',
     rank: 4,
-    accent: '#7c3aed',
+    accent: '#34D399',
     title: 'Operational Excellence / Continuous Improvement Lead',
     tagline: 'The framework-and-policy side, without necessarily building the technical logic yourself.',
     detail: 'More senior and strategic, less hands-on — a different emphasis than the building work above, but where your current title already points.',
@@ -293,7 +457,7 @@ const ROLES = [
   {
     id: 'virtual-assistant',
     rank: 5,
-    accent: '#0f766e',
+    accent: '#8B5CF6',
     title: 'Virtual Assistant / Remote Ops Support',
     tagline: 'The broader net — admin, back-office, and ops support work you could step into tomorrow.',
     detail: 'Not the core target, but the same muscles: inbox and CRM upkeep, scheduling, process docs, client coordination. Good contract volume while hunting the bigger roles.',
@@ -305,7 +469,7 @@ const ROLES = [
   {
     id: 'data-analyst',
     rank: 6,
-    accent: '#be123c',
+    accent: '#F472B6',
     title: 'Data & Reporting Analyst',
     tagline: 'The analytics side of your profile — data reporting and business analytics as the job itself.',
     detail: 'Dashboards, KPI reporting, ad-hoc analysis, turning messy operational data into decisions. Same reporting muscle you already use, sold as the headline skill.',
@@ -317,7 +481,7 @@ const ROLES = [
   {
     id: 'digital-marketing',
     rank: 7,
-    accent: '#0369a1',
+    accent: '#FBBF24',
     title: 'Digital Marketing / SEO Specialist',
     tagline: 'Backed by your Google Ads, Meta, and Semrush certifications.',
     detail: 'SEO, paid ads, social, and content roles — heavy remote/contract supply worldwide, and your certs get you past the first filter.',
@@ -329,7 +493,7 @@ const ROLES = [
   {
     id: 'project-manager',
     rank: 8,
-    accent: '#4d7c0f',
+    accent: '#34D399',
     title: 'Project Manager / Delivery Coordinator',
     tagline: 'Project management is already on your services list — this is its own market.',
     detail: 'Implementation, onboarding, and delivery coordination roles: stakeholders, timelines, vendors, and follow-through. Ops experience translates directly.',
@@ -709,9 +873,9 @@ function renderSkeleton() {
 function roleCardShell(role, bodyHtml) {
   const links = externalLinks(role);
   return `
-  <div class="role-card">
+  <div class="role-card${role.rank === 1 ? ' featured' : ''}">
     <div class="role-head">
-      <div class="rank-badge" style="background:${role.accent}22; color:${role.accent};">#${role.rank}</div>
+      <div class="rank-badge" style="background:${role.accent}; color:${role.accent === '#8B5CF6' ? '#fff' : '#1E293B'};">#${role.rank}</div>
       <div>
         <div class="role-title">${escapeHtml(role.title)}</div>
         <div class="role-tagline">${escapeHtml(role.tagline)}</div>
@@ -755,7 +919,7 @@ function renderResults(buckets) {
     grid.innerHTML += `
     <div class="role-card" style="grid-column: 1 / -1;">
       <div class="role-head">
-        <div class="rank-badge" style="background:rgba(0,0,0,0.04); color:var(--text2);">+</div>
+        <div class="rank-badge" style="background:#F1F5F9; color:#64748B;">+</div>
         <div>
           <div class="role-title">Other ops / CRM / support-adjacent openings</div>
           <div class="role-tagline">Didn't score cleanly into one archetype above, but still in the neighborhood — worth a scan.</div>
