@@ -187,7 +187,7 @@
   <div class="top-inner">
     <div class="eyebrow"><span class="dot"></span>Personal Job Search Dashboard</div>
     <h1>Where the RevOps skillset actually goes</h1>
-    <p class="lede">Five target role archetypes, ranked by fit — matched against live pulls from remote job boards <em>and</em> the career pages of remote-first companies. Contractor-friendly and worldwide-open roles rank higher and get badges.</p>
+    <p class="lede">Eight target role archetypes — RevOps and systems work at the top, plus analytics, digital marketing, project delivery, and ops support. Every listing is remote-only, pulled live from job boards and the career pages of 20 remote-friendly companies. Contractor and worldwide-open roles rank higher and get badges.</p>
     <div class="controls">
       <button class="primary" id="refreshBtn" onclick="runSearch()">
         <span class="spinner" id="spinner"></span>
@@ -230,11 +230,12 @@
 <footer class="wrap">
   <p class="footer-note">
     Every refresh pulls live, client-side, from the Remotive, RemoteOK, and Jobicy public job APIs plus the
-    career pages of 11 remote-first companies (GitLab, Remote.com, Anthropic, Airtable, Automattic, Invisible,
-    Zapier, Oyster, Linear, Supabase, Deel — via their public Greenhouse/Ashby board APIs). Everything is scored
-    against each role's keyword profile, with contract and worldwide-open roles boosted. Nothing is sent to a
-    server and nothing is stored. LinkedIn, Indeed, and Google don't expose a public search API (and this tool
-    doesn't scrape), so each card links into a pre-filled search there as a one-click fallback.
+    career pages of 20 remote-friendly companies (GitLab, Stripe, Notion, Canonical, Twilio, Mozilla, Anthropic,
+    Automattic, Zapier, Deel, and more — via their public Greenhouse/Ashby board APIs, filtered to remote-open
+    postings only). Everything is scored against each role's keyword profile, with contract and worldwide-open
+    roles boosted. Nothing is sent to a server and nothing is stored. LinkedIn, Indeed, and Google don't expose
+    a public search API (and this tool doesn't scrape), so each card links into a pre-filled search there as a
+    one-click fallback.
   </p>
 </footer>
 
@@ -295,10 +296,46 @@ const ROLES = [
     title: 'Virtual Assistant / Remote Ops Support',
     tagline: 'The broader net — admin, back-office, and ops support work you could step into tomorrow.',
     detail: 'Not the core target, but the same muscles: inbox and CRM upkeep, scheduling, process docs, client coordination. Good contract volume while hunting the bigger roles.',
-    primary: ['virtual assistant', 'executive assistant', 'administrative assistant', 'operations assistant', 'admin assistant', 'operations coordinator', 'project coordinator', 'ops assistant'],
+    primary: ['virtual assistant', 'executive assistant', 'administrative assistant', 'operations assistant', 'admin assistant', 'operations coordinator', 'ops assistant'],
     secondary: ['back office', 'data entry', 'customer support specialist', 'customer success', 'office manager', 'operations specialist', 'sales support', 'scheduling', 'client coordinator', 'personal assistant'],
     remotiveQueries: ['virtual assistant', 'operations assistant'],
     externalQuery: 'Virtual Assistant OR "Operations Assistant" remote contract'
+  },
+  {
+    id: 'data-analyst',
+    rank: 6,
+    accent: '#be123c',
+    title: 'Data & Reporting Analyst',
+    tagline: 'The analytics side of your profile — data reporting and business analytics as the job itself.',
+    detail: 'Dashboards, KPI reporting, ad-hoc analysis, turning messy operational data into decisions. Same reporting muscle you already use, sold as the headline skill.',
+    primary: ['data analyst', 'reporting analyst', 'business analyst', 'business intelligence', 'data reporting', 'analytics specialist', 'insights analyst'],
+    secondary: ['dashboards', 'looker', 'power bi', 'tableau', 'sql', 'google sheets', 'excel', 'kpi', 'data visualization', 'reporting'],
+    remotiveQueries: ['data analyst', 'business analyst'],
+    externalQuery: '"Data Analyst" OR "Business Analyst" remote'
+  },
+  {
+    id: 'digital-marketing',
+    rank: 7,
+    accent: '#0369a1',
+    title: 'Digital Marketing / SEO Specialist',
+    tagline: 'Backed by your Google Ads, Meta, and Semrush certifications.',
+    detail: 'SEO, paid ads, social, and content roles — heavy remote/contract supply worldwide, and your certs get you past the first filter.',
+    primary: ['seo specialist', 'digital marketing', 'social media manager', 'social media specialist', 'content marketing', 'marketing specialist', 'ppc specialist', 'google ads', 'marketing coordinator', 'seo manager'],
+    secondary: ['semrush', 'seo', 'sem', 'meta ads', 'facebook ads', 'paid media', 'content strategist', 'email marketing', 'marketing assistant', 'youtube'],
+    remotiveQueries: ['seo', 'digital marketing'],
+    externalQuery: '"Digital Marketing" OR "SEO Specialist" remote'
+  },
+  {
+    id: 'project-manager',
+    rank: 8,
+    accent: '#4d7c0f',
+    title: 'Project Manager / Delivery Coordinator',
+    tagline: 'Project management is already on your services list — this is its own market.',
+    detail: 'Implementation, onboarding, and delivery coordination roles: stakeholders, timelines, vendors, and follow-through. Ops experience translates directly.',
+    primary: ['project manager', 'project coordinator', 'program manager', 'delivery manager', 'implementation manager', 'service delivery', 'implementation specialist'],
+    secondary: ['project management', 'pmo', 'onboarding manager', 'stakeholder', 'scrum', 'agile', 'delivery coordinator', 'client onboarding'],
+    remotiveQueries: ['project manager', 'implementation specialist'],
+    externalQuery: '"Project Manager" OR "Project Coordinator" remote'
   }
 ];
 
@@ -309,19 +346,32 @@ const AI_TOOLING_KEYWORDS = ['claude code', 'claude', 'anthropic', 'clay.com', '
 // All verified CORS-reachable from this site's origin. Add more by appending
 // {name, kind: 'greenhouse'|'ashby', board: '<slug>'} — slug is in the company's
 // careers-page URL (boards.greenhouse.io/<slug> or jobs.ashbyhq.com/<slug>).
+// allRemote: the company is fully distributed, so every posting counts as remote
+// even when the location field names a region.
 const COMPANY_BOARDS = [
-  { name: 'GitLab',     kind: 'greenhouse', board: 'gitlab' },
-  { name: 'Remote.com', kind: 'greenhouse', board: 'remotecom' },
-  { name: 'Anthropic',  kind: 'greenhouse', board: 'anthropic' },
-  { name: 'Airtable',   kind: 'greenhouse', board: 'airtable' },
-  { name: 'Automattic', kind: 'greenhouse', board: 'automatticcareers' },
-  { name: 'Invisible',  kind: 'greenhouse', board: 'invisible' },
-  { name: 'Zapier',     kind: 'ashby',      board: 'zapier' },
-  { name: 'Oyster',     kind: 'ashby',      board: 'oyster' },
-  { name: 'Linear',     kind: 'ashby',      board: 'linear' },
-  { name: 'Supabase',   kind: 'ashby',      board: 'supabase' },
-  { name: 'Deel',       kind: 'ashby',      board: 'deel' }
+  { name: 'GitLab',       kind: 'greenhouse', board: 'gitlab', allRemote: true },
+  { name: 'Remote.com',   kind: 'greenhouse', board: 'remotecom', allRemote: true },
+  { name: 'Automattic',   kind: 'greenhouse', board: 'automatticcareers', allRemote: true },
+  { name: 'Anthropic',    kind: 'greenhouse', board: 'anthropic' },
+  { name: 'Airtable',     kind: 'greenhouse', board: 'airtable' },
+  { name: 'Invisible',    kind: 'greenhouse', board: 'invisible' },
+  { name: 'Stripe',       kind: 'greenhouse', board: 'stripe' },
+  { name: 'Twilio',       kind: 'greenhouse', board: 'twilio' },
+  { name: 'Mozilla',      kind: 'greenhouse', board: 'mozilla' },
+  { name: 'Canonical',    kind: 'greenhouse', board: 'canonical', allRemote: true },
+  { name: 'Wikimedia',    kind: 'greenhouse', board: 'wikimedia' },
+  { name: 'Calendly',     kind: 'greenhouse', board: 'calendly' },
+  { name: 'Sprout Social',kind: 'greenhouse', board: 'sproutsocial' },
+  { name: 'Zapier',       kind: 'ashby',      board: 'zapier', allRemote: true },
+  { name: 'Oyster',       kind: 'ashby',      board: 'oyster', allRemote: true },
+  { name: 'Linear',       kind: 'ashby',      board: 'linear' },
+  { name: 'Supabase',     kind: 'ashby',      board: 'supabase', allRemote: true },
+  { name: 'Deel',         kind: 'ashby',      board: 'deel' },
+  { name: 'Notion',       kind: 'ashby',      board: 'notion' },
+  { name: 'Ramp',         kind: 'ashby',      board: 'ramp' }
 ];
+
+const REMOTE_LOC_RE = /(remote|anywhere|worldwide|distributed|global|work from home)/i;
 
 const CONTRACT_RE = /(contract|contractor|freelance|part.?time|temporar)/;
 const WORLDWIDE_RE = /(worldwide|anywhere|global|international|work from anywhere)/;
@@ -451,7 +501,7 @@ async function fetchRemoteOK() {
 }
 
 async function fetchJobicy() {
-  const tags = ['', 'operations', 'assistant', 'coordinator', 'crm'];
+  const tags = ['', 'operations', 'assistant', 'coordinator', 'crm', 'marketing', 'data analyst', 'project manager'];
   const results = await Promise.allSettled(tags.map(t =>
     fetch(`https://jobicy.com/api/v2/remote-jobs?count=50${t ? '&tag=' + encodeURIComponent(t) : ''}`)
       .then(r => { if (!r.ok) throw new Error('bad status ' + r.status); return r.json(); })
@@ -487,7 +537,11 @@ async function fetchCompanyBoards() {
       const r = await fetch(`https://boards-api.greenhouse.io/v1/boards/${c.board}/jobs`);
       if (!r.ok) throw new Error(c.name);
       const d = await r.json();
-      return (d.jobs || []).map(j => ({
+      const OFFICE_RE = /(office.based|on.?site)/i;
+      return (d.jobs || []).filter(j => {
+        const loc = (j.location && j.location.name) || '';
+        return (c.allRemote && !OFFICE_RE.test(loc)) || REMOTE_LOC_RE.test(loc);
+      }).map(j => ({
         id: 'gh-' + c.board + '-' + j.id,
         title: j.title,
         company: c.name,
@@ -502,12 +556,17 @@ async function fetchCompanyBoards() {
     const r = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${c.board}`);
     if (!r.ok) throw new Error(c.name);
     const d = await r.json();
-    return (d.jobs || []).filter(j => j.isListed !== false).map(j => ({
+    return (d.jobs || [])
+      .filter(j => j.isListed !== false)
+      .filter(j => c.allRemote || j.isRemote || REMOTE_LOC_RE.test(j.location || ''))
+      .map(j => ({
       id: 'ashby-' + c.board + '-' + j.id,
       title: j.title,
       company: c.name,
       url: j.jobUrl,
-      location: j.location || (j.isRemote ? 'Remote' : 'See posting'),
+      location: j.isRemote && j.location && !REMOTE_LOC_RE.test(j.location)
+        ? 'Remote · ' + j.location
+        : (j.location || (j.isRemote ? 'Remote' : 'See posting')),
       type: j.employmentType || '',
       date: j.publishedAt,
       source: c.name,
