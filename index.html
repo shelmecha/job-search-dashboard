@@ -9,21 +9,22 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0b0d;
-    --bg2: #111317;
-    --surface: rgba(255,255,255,0.03);
-    --surface-hover: rgba(255,255,255,0.055);
-    --border: rgba(255,255,255,0.09);
-    --border2: rgba(255,255,255,0.15);
-    --text: #f2f3f5;
-    --text2: #9aa0ab;
-    --text3: #5c6270;
-    --accent: #e8a33d;
-    --accent-soft: rgba(232,163,61,0.13);
-    --good: #38c793;
-    --good-soft: rgba(56,199,147,0.13);
-    --warn: #e8615c;
-    --warn-soft: rgba(232,97,92,0.13);
+    color-scheme: light;
+    --bg: #ffffff;
+    --bg2: #fafafa;
+    --surface: #ffffff;
+    --surface-hover: #f7f7f8;
+    --border: #e8e8ea;
+    --border2: #d6d6da;
+    --text: #18181b;
+    --text2: #6b7280;
+    --text3: #a1a1aa;
+    --accent: #b45309;
+    --accent-soft: rgba(180,83,9,0.08);
+    --good: #047857;
+    --good-soft: rgba(4,120,87,0.07);
+    --warn: #b91c1c;
+    --warn-soft: rgba(185,28,28,0.06);
   }
   * , *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { background: var(--bg); color: var(--text); }
@@ -41,7 +42,7 @@
   .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
   header.top {
     border-bottom: 1px solid var(--border);
-    background: linear-gradient(180deg, var(--bg2), var(--bg));
+    background: var(--bg2);
   }
   .top-inner { padding: 56px 28px 40px; max-width: 1180px; margin: 0 auto; }
   .eyebrow {
@@ -54,7 +55,7 @@
 
   .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
   button.primary {
-    background: var(--accent); color: #1a1200; border: none; font-weight: 600; font-size: 14.5px;
+    background: var(--text); color: #fff; border: none; font-weight: 600; font-size: 14.5px;
     padding: 13px 22px; border-radius: 9px; cursor: pointer; transition: transform .12s ease, filter .12s ease;
     display: flex; align-items: center; gap: 9px;
   }
@@ -66,7 +67,7 @@
 
   .spinner {
     width: 15px; height: 15px; border-radius: 50%;
-    border: 2px solid rgba(26,18,0,0.35); border-top-color: #1a1200;
+    border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff;
     animation: spin .7s linear infinite; display: none;
   }
   .spinner.show { display: inline-block; }
@@ -74,7 +75,7 @@
 
   .banner {
     margin-top: 18px; padding: 11px 16px; border-radius: 8px; font-size: 13.5px;
-    background: var(--warn-soft); color: #ffb4b0; border: 1px solid rgba(232,97,92,0.25); display: none;
+    background: var(--warn-soft); color: var(--warn); border: 1px solid rgba(185,28,28,0.18); display: none;
   }
   .banner.show { display: block; }
 
@@ -104,7 +105,7 @@
 
   .chip-row { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 48px; margin-bottom: 16px; }
   .chip {
-    font-size: 11.5px; color: var(--text2); background: rgba(255,255,255,0.04);
+    font-size: 11.5px; color: var(--text2); background: #f4f4f5;
     border: 1px solid var(--border); padding: 4px 9px; border-radius: 20px;
   }
 
@@ -126,15 +127,15 @@
   .job-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
   .ai-badge {
     display: inline-flex; align-items: center; margin-left: 8px; font-size: 10.5px; font-weight: 600;
-    color: var(--accent); background: var(--accent-soft); border: 1px solid rgba(232,163,61,0.3);
+    color: var(--accent); background: var(--accent-soft); border: 1px solid rgba(180,83,9,0.2);
     padding: 2px 7px; border-radius: 20px; vertical-align: middle;
   }
   .flag-badge {
     display: inline-flex; align-items: center; margin-left: 6px; font-size: 10.5px; font-weight: 600;
     padding: 2px 7px; border-radius: 20px; vertical-align: middle;
   }
-  .flag-badge.ww { color: var(--good); background: var(--good-soft); border: 1px solid rgba(56,199,147,0.3); }
-  .flag-badge.ct { color: #93c5fd; background: rgba(59,130,246,0.13); border: 1px solid rgba(59,130,246,0.3); }
+  .flag-badge.ww { color: var(--good); background: var(--good-soft); border: 1px solid rgba(4,120,87,0.2); }
+  .flag-badge.ct { color: #1d4ed8; background: rgba(29,78,216,0.06); border: 1px solid rgba(29,78,216,0.2); }
 
   .filter-row { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
   .toggle {
@@ -150,7 +151,7 @@
 
   .empty-state { padding-left: 48px; font-size: 13px; color: var(--text3); padding-top: 4px; padding-bottom: 4px; }
   .skeleton { padding-left: 48px; display: flex; flex-direction: column; gap: 8px; }
-  .skel-row { height: 44px; border-radius: 10px; background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.06), rgba(255,255,255,0.03)); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+  .skel-row { height: 44px; border-radius: 10px; background: linear-gradient(90deg, rgba(0,0,0,0.03), rgba(0,0,0,0.06), rgba(0,0,0,0.03)); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
   @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
   .show-more { padding-left: 48px; margin-top: 6px; }
@@ -210,7 +211,7 @@ const ROLES = [
   {
     id: 'revops-architect',
     rank: 1,
-    accent: '#e8a33d',
+    accent: '#b45309',
     title: 'RevOps Architect / Head of RevOps',
     tagline: 'Closest match — owns the CRM data model, workflow logic, and cross-functional process design as the actual job, not a side task.',
     detail: 'Highest ceiling, strong remote demand — turning "we need X" into properties, triggers, and branches as a full-time mandate.',
@@ -222,7 +223,7 @@ const ROLES = [
   {
     id: 'business-systems-analyst',
     rank: 2,
-    accent: '#3b7cff',
+    accent: '#1d4ed8',
     title: 'Business Systems Analyst (CRM/Ops focus)',
     tagline: 'Same skillset, more tactical/junior framing.',
     detail: 'A good stepping-stone title to move externally now, without waiting for a "Head of" label.',
@@ -234,7 +235,7 @@ const ROLES = [
   {
     id: 'automation-consultant',
     rank: 3,
-    accent: '#38c793',
+    accent: '#047857',
     title: 'Process / Workflow Automation Consultant',
     tagline: 'The freelance/contract version of the same thing, across multiple clients’ stacks.',
     detail: 'Higher hourly ceiling, less stability — HubSpot, Make, and n8n work across accounts instead of one employer.',
@@ -246,7 +247,7 @@ const ROLES = [
   {
     id: 'operational-excellence-lead',
     rank: 4,
-    accent: '#c084fc',
+    accent: '#7c3aed',
     title: 'Operational Excellence / Continuous Improvement Lead',
     tagline: 'The framework-and-policy side, without necessarily building the technical logic yourself.',
     detail: 'More senior and strategic, less hands-on — a different emphasis than the building work above, but where your current title already points.',
@@ -258,7 +259,7 @@ const ROLES = [
   {
     id: 'virtual-assistant',
     rank: 5,
-    accent: '#5eead4',
+    accent: '#0f766e',
     title: 'Virtual Assistant / Remote Ops Support',
     tagline: 'The broader net — admin, back-office, and ops support work you could step into tomorrow.',
     detail: 'Not the core target, but the same muscles: inbox and CRM upkeep, scheduling, process docs, client coordination. Good contract volume while hunting the bigger roles.',
@@ -605,7 +606,7 @@ function renderResults(buckets) {
     grid.innerHTML += `
     <div class="role-card" style="grid-column: 1 / -1;">
       <div class="role-head">
-        <div class="rank-badge" style="background:rgba(255,255,255,0.06); color:var(--text2);">+</div>
+        <div class="rank-badge" style="background:rgba(0,0,0,0.04); color:var(--text2);">+</div>
         <div>
           <div class="role-title">Other ops / CRM / support-adjacent openings</div>
           <div class="role-tagline">Didn't score cleanly into one archetype above, but still in the neighborhood — worth a scan.</div>
