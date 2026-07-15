@@ -129,6 +129,21 @@
     color: var(--accent); background: var(--accent-soft); border: 1px solid rgba(232,163,61,0.3);
     padding: 2px 7px; border-radius: 20px; vertical-align: middle;
   }
+  .flag-badge {
+    display: inline-flex; align-items: center; margin-left: 6px; font-size: 10.5px; font-weight: 600;
+    padding: 2px 7px; border-radius: 20px; vertical-align: middle;
+  }
+  .flag-badge.ww { color: var(--good); background: var(--good-soft); border: 1px solid rgba(56,199,147,0.3); }
+  .flag-badge.ct { color: #93c5fd; background: rgba(59,130,246,0.13); border: 1px solid rgba(59,130,246,0.3); }
+
+  .filter-row { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .toggle {
+    background: var(--surface); color: var(--text2); border: 1px solid var(--border);
+    font-size: 13px; font-weight: 600; padding: 8px 15px; border-radius: 20px; cursor: pointer;
+    font-family: inherit; transition: all .12s ease;
+  }
+  .toggle:hover { border-color: var(--border2); color: var(--text); }
+  .toggle.on { color: var(--good); background: var(--good-soft); border-color: rgba(56,199,147,0.4); }
   .job-src { font-size: 10.5px; color: var(--text3); flex: none; text-transform: uppercase; letter-spacing: 0.04em; }
   .job-meta { font-size: 12px; color: var(--text3); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
   .job-meta span:not(:last-child)::after { content: '·'; margin-left: 10px; color: var(--text3); }
@@ -154,13 +169,17 @@
   <div class="top-inner">
     <div class="eyebrow"><span class="dot"></span>Personal Job Search Dashboard</div>
     <h1>Where the RevOps skillset actually goes</h1>
-    <p class="lede">Four target role archetypes, ranked by fit — plus a live pull of open remote roles that match each one, so you can see what's actually out there right now.</p>
+    <p class="lede">Five target role archetypes, ranked by fit — matched against live pulls from remote job boards <em>and</em> the career pages of remote-first companies. Contractor-friendly and worldwide-open roles rank higher and get badges.</p>
     <div class="controls">
       <button class="primary" id="refreshBtn" onclick="runSearch()">
         <span class="spinner" id="spinner"></span>
         <span id="refreshLabel">Find Matching Jobs Now</span>
       </button>
       <span class="status-line" id="statusLine">Not run yet — click to pull live listings.</span>
+    </div>
+    <div class="filter-row">
+      <button class="toggle" id="flt-worldwide" onclick="toggleFilter('worldwide')">🌍 Worldwide-open only</button>
+      <button class="toggle" id="flt-contract" onclick="toggleFilter('contract')">Contract / freelance only</button>
     </div>
     <div class="banner" id="errorBanner"></div>
     <div class="stats" id="statsRow" style="display:none;">
@@ -177,11 +196,12 @@
 
 <footer class="wrap">
   <p class="footer-note">
-    Live listings are pulled client-side from the Remotive, RemoteOK, and Jobicy public job APIs and scored
-    against each role's title/keyword profile — nothing is sent to a server, and nothing is stored. LinkedIn,
-    Indeed, and Google don't expose a public search API (and scraping them isn't something this tool does), so
-    each card also links straight into a pre-filled search on those boards, plus We Work Remotely, as a one-click
-    fallback. Re-run any time — results reflect what's live right now.
+    Every refresh pulls live, client-side, from the Remotive, RemoteOK, and Jobicy public job APIs plus the
+    career pages of 11 remote-first companies (GitLab, Remote.com, Anthropic, Airtable, Automattic, Invisible,
+    Zapier, Oyster, Linear, Supabase, Deel — via their public Greenhouse/Ashby board APIs). Everything is scored
+    against each role's keyword profile, with contract and worldwide-open roles boosted. Nothing is sent to a
+    server and nothing is stored. LinkedIn, Indeed, and Google don't expose a public search API (and this tool
+    doesn't scrape), so each card links into a pre-filled search there as a one-click fallback.
   </p>
 </footer>
 
@@ -234,15 +254,49 @@ const ROLES = [
     secondary: ['lean six sigma', 'business process lead', 'operational excellence manager', 'continuous improvement manager', 'process excellence'],
     remotiveQueries: ['operational excellence', 'continuous improvement'],
     externalQuery: 'Operational Excellence Continuous Improvement Lead'
+  },
+  {
+    id: 'virtual-assistant',
+    rank: 5,
+    accent: '#5eead4',
+    title: 'Virtual Assistant / Remote Ops Support',
+    tagline: 'The broader net — admin, back-office, and ops support work you could step into tomorrow.',
+    detail: 'Not the core target, but the same muscles: inbox and CRM upkeep, scheduling, process docs, client coordination. Good contract volume while hunting the bigger roles.',
+    primary: ['virtual assistant', 'executive assistant', 'administrative assistant', 'operations assistant', 'admin assistant', 'operations coordinator', 'project coordinator', 'ops assistant'],
+    secondary: ['back office', 'data entry', 'customer support specialist', 'customer success', 'office manager', 'operations specialist', 'sales support', 'scheduling', 'client coordinator', 'personal assistant'],
+    remotiveQueries: ['virtual assistant', 'operations assistant'],
+    externalQuery: 'Virtual Assistant OR "Operations Assistant" remote contract'
   }
 ];
 
-const GENERAL_KEYWORDS = ['revops','revenue operations','business systems','operations manager','operations lead','process improvement','workflow automation','marketing operations manager','sales operations manager','crm manager','crm administrator','crm lead','systems administrator','operations analyst'];
+const GENERAL_KEYWORDS = ['revops','revenue operations','business systems','operations manager','operations lead','process improvement','workflow automation','marketing operations manager','sales operations manager','crm manager','crm administrator','crm lead','systems administrator','operations analyst','coordinator','customer support','customer success','back office','data entry','office assistant'];
 const AI_TOOLING_KEYWORDS = ['claude code', 'claude', 'anthropic', 'clay.com', 'chatgpt', 'gpt-4', 'gpt4', 'openai', 'ai agent', 'ai agents', 'llm workflow', 'cursor ai'];
+
+// Company career pages pulled directly via their public ATS APIs (Greenhouse/Ashby).
+// All verified CORS-reachable from this site's origin. Add more by appending
+// {name, kind: 'greenhouse'|'ashby', board: '<slug>'} — slug is in the company's
+// careers-page URL (boards.greenhouse.io/<slug> or jobs.ashbyhq.com/<slug>).
+const COMPANY_BOARDS = [
+  { name: 'GitLab',     kind: 'greenhouse', board: 'gitlab' },
+  { name: 'Remote.com', kind: 'greenhouse', board: 'remotecom' },
+  { name: 'Anthropic',  kind: 'greenhouse', board: 'anthropic' },
+  { name: 'Airtable',   kind: 'greenhouse', board: 'airtable' },
+  { name: 'Automattic', kind: 'greenhouse', board: 'automatticcareers' },
+  { name: 'Invisible',  kind: 'greenhouse', board: 'invisible' },
+  { name: 'Zapier',     kind: 'ashby',      board: 'zapier' },
+  { name: 'Oyster',     kind: 'ashby',      board: 'oyster' },
+  { name: 'Linear',     kind: 'ashby',      board: 'linear' },
+  { name: 'Supabase',   kind: 'ashby',      board: 'supabase' },
+  { name: 'Deel',       kind: 'ashby',      board: 'deel' }
+];
+
+const CONTRACT_RE = /(contract|contractor|freelance|part.?time|temporar)/;
+const WORLDWIDE_RE = /(worldwide|anywhere|global|international|work from anywhere)/;
 const MIN_SCORE = 3;
 const MAX_SHOWN = 6;
 
 let expandedState = {};
+let filters = { worldwide: false, contract: false };
 
 function stripHtml(html) {
   const div = document.createElement('div');
@@ -266,13 +320,21 @@ function scoreJobForRole(text, role) {
 }
 
 function aiTooling(text) {
-  let bonus = 0, hit = false;
+  let bonus = 0, hit = false, titleHit = false;
   for (const kw of AI_TOOLING_KEYWORDS) {
-    if (text.title.includes(kw)) { bonus += 3; hit = true; }
+    if (text.title.includes(kw)) { bonus += 3; hit = true; titleHit = true; }
     else if (text.tags.includes(kw)) { bonus += 1.5; hit = true; }
     else if (text.desc.includes(kw)) { bonus += 1; hit = true; }
   }
-  return { bonus, hit };
+  return { bonus, hit, titleHit };
+}
+
+function jobFlags(job) {
+  const typeBlob = ((job.type || '') + ' ' + job.title).toLowerCase();
+  const loc = (job.location || '').toLowerCase().trim();
+  const contract = CONTRACT_RE.test(typeBlob);
+  const worldwide = WORLDWIDE_RE.test(loc) || loc === 'remote' || loc === '';
+  return { contract, worldwide };
 }
 
 function timeAgo(iso) {
@@ -314,6 +376,7 @@ async function fetchRemotive() {
         url: j.url,
         location: j.candidate_required_location || 'Remote',
         salaryText: j.salary || null,
+        type: j.job_type || '',
         date: j.publication_date,
         source: 'Remotive',
         _text: {
@@ -343,6 +406,7 @@ async function fetchRemoteOK() {
       location: j.location || 'Remote',
       salaryMin: j.salary_min,
       salaryMax: j.salary_max,
+      type: (j.tags || []).join(' '),
       date: j.date,
       source: 'RemoteOK',
       _text: {
@@ -365,6 +429,7 @@ async function fetchJobicy() {
     location: j.jobGeo || 'Remote',
     salaryMin: j.salaryMin,
     salaryMax: j.salaryMax,
+    type: (j.jobType || []).join(' '),
     date: j.pubDate,
     source: 'Jobicy',
     _text: {
@@ -375,22 +440,78 @@ async function fetchJobicy() {
   }));
 }
 
+async function fetchCompanyBoards() {
+  const settled = await Promise.allSettled(COMPANY_BOARDS.map(async c => {
+    if (c.kind === 'greenhouse') {
+      const r = await fetch(`https://boards-api.greenhouse.io/v1/boards/${c.board}/jobs`);
+      if (!r.ok) throw new Error(c.name);
+      const d = await r.json();
+      return (d.jobs || []).map(j => ({
+        id: 'gh-' + c.board + '-' + j.id,
+        title: j.title,
+        company: c.name,
+        url: j.absolute_url,
+        location: (j.location && j.location.name) || 'See posting',
+        type: '',
+        date: j.updated_at,
+        source: c.name,
+        _text: { title: (j.title || '').toLowerCase(), tags: '', desc: '' }
+      }));
+    }
+    const r = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${c.board}`);
+    if (!r.ok) throw new Error(c.name);
+    const d = await r.json();
+    return (d.jobs || []).filter(j => j.isListed !== false).map(j => ({
+      id: 'ashby-' + c.board + '-' + j.id,
+      title: j.title,
+      company: c.name,
+      url: j.jobUrl,
+      location: j.location || (j.isRemote ? 'Remote' : 'See posting'),
+      type: j.employmentType || '',
+      date: j.publishedAt,
+      source: c.name,
+      _text: {
+        title: (j.title || '').toLowerCase(),
+        tags: [j.department, j.team, j.employmentType].filter(Boolean).join(' ').toLowerCase(),
+        desc: (j.descriptionPlain || '').toLowerCase().slice(0, 2000)
+      }
+    }));
+  }));
+
+  const jobs = [], failed = [];
+  settled.forEach((res, i) => {
+    if (res.status === 'fulfilled') jobs.push(...res.value);
+    else failed.push(COMPANY_BOARDS[i].name);
+  });
+  window._boardsFailed = failed;
+  window._boardsJobCount = jobs.length;
+  if (!jobs.length && COMPANY_BOARDS.length) throw new Error('all company boards failed');
+  return jobs;
+}
+
 function classify(jobs) {
   const buckets = {};
   ROLES.forEach(r => buckets[r.id] = []);
   buckets.general = [];
 
   for (const job of jobs) {
-    const { bonus, hit } = aiTooling(job._text);
+    const { bonus, hit, titleHit } = aiTooling(job._text);
+    const flags = jobFlags(job);
+    const flagBonus = (flags.contract ? 2 : 0) + (flags.worldwide ? 1.5 : 0);
     let best = null, bestScore = 0;
     for (const role of ROLES) {
-      const s = scoreJobForRole(job._text, role) + bonus;
+      const s = scoreJobForRole(job._text, role) + bonus + flagBonus;
       if (s > bestScore) { bestScore = s; best = role; }
     }
-    if (best && bestScore >= MIN_SCORE) {
-      buckets[best.id].push({ ...job, _score: bestScore, _ai: hit });
-    } else if (GENERAL_KEYWORDS.some(k => job._text.title.includes(k))) {
-      buckets.general.push({ ...job, _score: bestScore, _ai: hit });
+    const tagged = { ...job, _score: bestScore, _ai: hit, _contract: flags.contract, _worldwide: flags.worldwide };
+    const ENGINEERING_RE = /(engineer|developer|scientist|research|infrastructure|security|architect, software)/;
+    if (best && bestScore >= MIN_SCORE + bonus + flagBonus) {
+      buckets[best.id].push(tagged);
+    } else if (
+      GENERAL_KEYWORDS.some(k => job._text.title.includes(k)) ||
+      (titleHit && !ENGINEERING_RE.test(job._text.title))
+    ) {
+      buckets.general.push(tagged);
     }
   }
   Object.values(buckets).forEach(list =>
@@ -413,7 +534,7 @@ function jobRow(job) {
   const meta = [job.company, job.location, timeAgo(job.date), formatSalary(job)].filter(Boolean);
   return `<a class="job" href="${job.url}" target="_blank" rel="noopener">
     <div class="job-top">
-      <span class="job-title">${escapeHtml(job.title)}${job._ai ? '<span class="ai-badge">🤖 AI tooling</span>' : ''}</span>
+      <span class="job-title">${escapeHtml(job.title)}${job._ai ? '<span class="ai-badge">🤖 AI tooling</span>' : ''}${job._worldwide ? '<span class="flag-badge ww">🌍 Worldwide</span>' : ''}${job._contract ? '<span class="flag-badge ct">Contract</span>' : ''}</span>
       <span class="job-src">${job.source}</span>
     </div>
     <div class="job-meta">${meta.map(m => `<span>${escapeHtml(String(m))}</span>`).join('')}</div>
@@ -453,24 +574,31 @@ function roleCardShell(role, bodyHtml) {
   </div>`;
 }
 
+function applyFilters(list) {
+  return list.filter(j => (!filters.worldwide || j._worldwide) && (!filters.contract || j._contract));
+}
+
+function bucketBody(key, rawList) {
+  const list = applyFilters(rawList);
+  const hidden = rawList.length - list.length;
+  if (list.length === 0) {
+    const msg = hidden > 0
+      ? `${hidden} match${hidden===1?'':'es'} hidden by your filters — clear them to see everything.`
+      : `Nothing scoring as a direct hit right now across the job boards or watched company career pages — this role type is niche for public APIs. Use the search links above to check LinkedIn/Indeed/Google directly.`;
+    return `<div class="match-count">0 live matches</div><div class="empty-state">${msg}</div>`;
+  }
+  const shown = expandedState[key] ? list : list.slice(0, MAX_SHOWN);
+  let body = `<div class="match-count">${list.length} live match${list.length===1?'':'es'}${hidden>0?` · ${hidden} filtered out`:''}</div>
+    <div class="match-list">${shown.map(jobRow).join('')}</div>`;
+  if (list.length > MAX_SHOWN) {
+    body += `<div class="show-more"><button onclick="toggleExpand('${key}')">${expandedState[key] ? 'Show less' : `Show ${list.length - MAX_SHOWN} more`}</button></div>`;
+  }
+  return body;
+}
+
 function renderResults(buckets) {
   const grid = document.getElementById('roleGrid');
-  grid.innerHTML = ROLES.map(role => {
-    const list = buckets[role.id] || [];
-    const shown = expandedState[role.id] ? list : list.slice(0, MAX_SHOWN);
-    let body;
-    if (list.length === 0) {
-      body = `<div class="match-count">0 live matches</div>
-        <div class="empty-state">Nothing scoring as a direct hit right now across Remotive, RemoteOK, or Jobicy — this role type is niche for job-board APIs. Use the search links above to check LinkedIn/Indeed/Google directly.</div>`;
-    } else {
-      body = `<div class="match-count">${list.length} live match${list.length===1?'':'es'}</div>
-        <div class="match-list">${shown.map(jobRow).join('')}</div>`;
-      if (list.length > MAX_SHOWN) {
-        body += `<div class="show-more"><button onclick="toggleExpand('${role.id}')">${expandedState[role.id] ? 'Show less' : `Show ${list.length - MAX_SHOWN} more`}</button></div>`;
-      }
-    }
-    return roleCardShell(role, body);
-  }).join('');
+  grid.innerHTML = ROLES.map(role => roleCardShell(role, bucketBody(role.id, buckets[role.id] || []))).join('');
 
   const general = buckets.general || [];
   if (general.length) {
@@ -479,12 +607,11 @@ function renderResults(buckets) {
       <div class="role-head">
         <div class="rank-badge" style="background:rgba(255,255,255,0.06); color:var(--text2);">+</div>
         <div>
-          <div class="role-title">Other RevOps / CRM / Ops-adjacent openings</div>
-          <div class="role-tagline">Didn't score cleanly into one archetype above, but still ops/CRM/RevOps flavored — worth a scan.</div>
+          <div class="role-title">Other ops / CRM / support-adjacent openings</div>
+          <div class="role-tagline">Didn't score cleanly into one archetype above, but still in the neighborhood — worth a scan.</div>
         </div>
       </div>
-      <div class="match-count">${general.length} match${general.length===1?'':'es'}</div>
-      <div class="match-list">${general.slice(0, MAX_SHOWN).map(jobRow).join('')}</div>
+      ${bucketBody('general', general)}
     </div>`;
   }
 }
@@ -492,6 +619,12 @@ function renderResults(buckets) {
 window.toggleExpand = function(roleId) {
   expandedState[roleId] = !expandedState[roleId];
   renderResults(window._lastBuckets);
+};
+
+window.toggleFilter = function(name) {
+  filters[name] = !filters[name];
+  document.getElementById('flt-' + name).classList.toggle('on', filters[name]);
+  if (window._lastBuckets) renderResults(window._lastBuckets);
 };
 
 async function runSearch() {
@@ -504,7 +637,8 @@ async function runSearch() {
   const SOURCES = [
     { name: 'Remotive', fetch: fetchRemotive },
     { name: 'RemoteOK', fetch: fetchRemoteOK },
-    { name: 'Jobicy', fetch: fetchJobicy }
+    { name: 'Jobicy', fetch: fetchJobicy },
+    { name: 'Company career pages', fetch: fetchCompanyBoards }
   ];
 
   btn.disabled = true;
@@ -523,8 +657,12 @@ async function runSearch() {
     else failures.push(SOURCES[i].name);
   });
 
-  if (failures.length) {
-    banner.textContent = `Couldn't reach: ${failures.join(', ')}. Showing results from the remaining source${failures.length < SOURCES.length ? '' : 's'}.`;
+  const boardFails = window._boardsFailed || [];
+  if (failures.length || boardFails.length) {
+    const parts = [];
+    if (failures.length) parts.push(`Couldn't reach: ${failures.join(', ')}.`);
+    if (boardFails.length && !failures.includes('Company career pages')) parts.push(`Career pages unreachable: ${boardFails.join(', ')}.`);
+    banner.textContent = parts.join(' ') + ' Showing everything else.';
     banner.classList.add('show');
   }
 
@@ -540,7 +678,9 @@ async function runSearch() {
   document.getElementById('statsRow').style.display = 'flex';
 
   const now = new Date();
-  status.innerHTML = `Last run <b>${now.toLocaleTimeString()}</b> — scanned <b>${jobs.length}</b> live listings.`;
+  const boardCount = window._boardsJobCount || 0;
+  status.innerHTML = `Last run <b>${now.toLocaleTimeString()}</b> — scanned <b>${jobs.length}</b> live listings` +
+    (boardCount ? ` (<b>${boardCount}</b> from ${COMPANY_BOARDS.length - boardFails.length} company career pages)` : '') + `.`;
 
   btn.disabled = false;
   spinner.classList.remove('show');
