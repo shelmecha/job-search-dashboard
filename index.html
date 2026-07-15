@@ -187,7 +187,7 @@
   <div class="top-inner">
     <div class="eyebrow"><span class="dot"></span>Personal Job Search Dashboard</div>
     <h1>Where the RevOps skillset actually goes</h1>
-    <p class="lede">Eight target role archetypes — RevOps and systems work at the top, plus analytics, digital marketing, project delivery, and ops support. Every listing is remote-only, pulled live from job boards and the career pages of 20 remote-friendly companies. Contractor and worldwide-open roles rank higher and get badges.</p>
+    <p class="lede">Eight target role archetypes — RevOps and systems work at the top, plus analytics, digital marketing, project delivery, and ops support. Every listing is remote-only, pulled live from job boards, the career pages of 20 remote-friendly companies, and open freelance projects on Freelancer.com. Contractor and worldwide-open roles rank higher and get badges.</p>
     <div class="controls">
       <button class="primary" id="refreshBtn" onclick="runSearch()">
         <span class="spinner" id="spinner"></span>
@@ -229,13 +229,13 @@
 
 <footer class="wrap">
   <p class="footer-note">
-    Every refresh pulls live, client-side, from the Remotive, RemoteOK, and Jobicy public job APIs plus the
-    career pages of 20 remote-friendly companies (GitLab, Stripe, Notion, Canonical, Twilio, Mozilla, Anthropic,
+    Every refresh pulls live, client-side, from the Remotive, RemoteOK, and Jobicy public job APIs, the career
+    pages of 20 remote-friendly companies (GitLab, Stripe, Notion, Canonical, Twilio, Mozilla, Anthropic,
     Automattic, Zapier, Deel, and more — via their public Greenhouse/Ashby board APIs, filtered to remote-open
-    postings only). Everything is scored against each role's keyword profile, with contract and worldwide-open
-    roles boosted. Nothing is sent to a server and nothing is stored. LinkedIn, Indeed, and Google don't expose
-    a public search API (and this tool doesn't scrape), so each card links into a pre-filled search there as a
-    one-click fallback.
+    postings only), and open freelance projects from the Freelancer.com public API. Everything is scored against
+    each role's keyword profile, with contract and worldwide-open roles boosted. Nothing is sent to a server and
+    nothing is stored. LinkedIn, Indeed, Google, and Upwork don't expose public search APIs (and this tool
+    doesn't scrape), so each card links into a pre-filled search on the big boards as a one-click fallback.
   </p>
 </footer>
 
@@ -589,6 +589,44 @@ async function fetchCompanyBoards() {
   return jobs;
 }
 
+async function fetchFreelancer() {
+  const queries = ['hubspot', 'crm', 'virtual assistant', 'data entry', 'seo', 'google ads', 'project management', 'data analyst', 'zapier automation'];
+  const results = await Promise.allSettled(queries.map(q =>
+    fetch(`https://www.freelancer.com/api/projects/0.1/projects/active/?query=${encodeURIComponent(q)}&limit=25&compact=true`)
+      .then(r => { if (!r.ok) throw new Error('bad status ' + r.status); return r.json(); })
+  ));
+  const seen = new Map();
+  for (const res of results) {
+    if (res.status !== 'fulfilled') continue;
+    for (const p of (res.value.result?.projects || [])) {
+      if (seen.has(p.id) || p.deleted || p.nonpublic) continue;
+      const sign = p.currency?.sign || '$';
+      const b = p.budget || {};
+      const budgetText = b.minimum != null
+        ? `${sign}${b.minimum}${b.maximum ? '–' + sign + b.maximum : '+'}${p.type === 'hourly' ? '/hr' : ' fixed'}`
+        : null;
+      seen.set(p.id, {
+        id: 'flr-' + p.id,
+        title: p.title,
+        company: (p.bid_stats?.bid_count ?? 0) + ' bids',
+        url: 'https://www.freelancer.com/projects/' + p.seo_url,
+        location: 'Worldwide',
+        salaryText: budgetText,
+        type: 'freelance project ' + (p.type || ''),
+        date: p.submitdate ? new Date(p.submitdate * 1000).toISOString() : null,
+        source: 'Freelancer.com',
+        _text: {
+          title: (p.title || '').toLowerCase(),
+          tags: 'freelance project contract',
+          desc: (p.preview_description || '').toLowerCase().slice(0, 2000)
+        }
+      });
+    }
+  }
+  if (!seen.size && results.every(r => r.status === 'rejected')) throw new Error('Freelancer.com unreachable');
+  return Array.from(seen.values());
+}
+
 function classify(jobs) {
   const buckets = {};
   ROLES.forEach(r => buckets[r.id] = []);
@@ -771,7 +809,8 @@ async function runSearch() {
     { name: 'Remotive', fetch: fetchRemotive },
     { name: 'RemoteOK', fetch: fetchRemoteOK },
     { name: 'Jobicy', fetch: fetchJobicy },
-    { name: 'Company career pages', fetch: fetchCompanyBoards }
+    { name: 'Company career pages', fetch: fetchCompanyBoards },
+    { name: 'Freelancer.com', fetch: fetchFreelancer }
   ];
 
   btn.disabled = true;
