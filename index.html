@@ -187,7 +187,7 @@
   <div class="top-inner">
     <div class="eyebrow"><span class="dot"></span>Personal Job Search Dashboard</div>
     <h1>Where the RevOps skillset actually goes</h1>
-    <p class="lede">Eight target role archetypes — RevOps and systems work at the top, plus analytics, digital marketing, project delivery, and ops support. Every listing is remote-only, pulled live from job boards, the career pages of 20 remote-friendly companies, and open freelance projects on Freelancer.com. Contractor and worldwide-open roles rank higher and get badges.</p>
+    <p class="lede">Eight target role archetypes — RevOps and systems work at the top, plus analytics, digital marketing, project delivery, and ops support. Every listing is remote-only, pulled live from job boards, the career pages of 31 remote-friendly companies, and open freelance projects on Freelancer.com. Contractor and worldwide-open roles rank higher and get badges.</p>
     <div class="controls">
       <button class="primary" id="refreshBtn" onclick="runSearch()">
         <span class="spinner" id="spinner"></span>
@@ -230,9 +230,10 @@
 <footer class="wrap">
   <p class="footer-note">
     Every refresh pulls live, client-side, from the Remotive, RemoteOK, and Jobicy public job APIs, the career
-    pages of 20 remote-friendly companies (GitLab, Stripe, Notion, Canonical, Twilio, Mozilla, Anthropic,
-    Automattic, Zapier, Deel, and more — via their public Greenhouse/Ashby board APIs, filtered to remote-open
-    postings only), and open freelance projects from the Freelancer.com public API. Everything is scored against
+    pages of 31 remote-friendly companies (GitLab, Stripe, Notion, Dropbox, Affirm, Coinbase, Cloudflare,
+    Lattice, Gusto, Webflow, ClickUp, Canonical, Anthropic, Automattic, Zapier, Deel, and more — via their
+    public Greenhouse/Ashby board APIs, filtered to remote-open postings only), and open freelance projects
+    from the Freelancer.com public API. Everything is scored against
     each role's keyword profile, with contract and worldwide-open roles boosted. Nothing is sent to a server and
     nothing is stored. LinkedIn, Indeed, Google, and Upwork don't expose public search APIs (and this tool
     doesn't scrape), so each card links into a pre-filled search on the big boards as a one-click fallback.
@@ -248,8 +249,8 @@ const ROLES = [
     title: 'RevOps Architect / Head of RevOps',
     tagline: 'Closest match — owns the CRM data model, workflow logic, and cross-functional process design as the actual job, not a side task.',
     detail: 'Highest ceiling, strong remote demand — turning "we need X" into properties, triggers, and branches as a full-time mandate.',
-    primary: ['revops', 'revenue operations', 'head of revenue operations', 'revenue operations architect', 'gtm systems', 'crm architect', 'director of revenue operations'],
-    secondary: ['salesforce architect', 'hubspot architect', 'crm data model', 'lead routing', 'marketing operations', 'vp of revenue operations', 'gtm operations'],
+    primary: ['revops', 'revenue operations', 'head of revenue operations', 'revenue operations architect', 'gtm systems', 'gtm engineer', 'crm architect', 'director of revenue operations', 'revenue systems'],
+    secondary: ['salesforce architect', 'hubspot architect', 'crm data model', 'lead routing', 'marketing operations', 'vp of revenue operations', 'gtm operations', 'go-to-market', 'gtm'],
     remotiveQueries: ['revenue operations', 'revops'],
     externalQuery: 'RevOps OR "Head of Revenue Operations"'
   },
@@ -362,13 +363,24 @@ const COMPANY_BOARDS = [
   { name: 'Wikimedia',    kind: 'greenhouse', board: 'wikimedia' },
   { name: 'Calendly',     kind: 'greenhouse', board: 'calendly' },
   { name: 'Sprout Social',kind: 'greenhouse', board: 'sproutsocial' },
+  { name: 'Lattice',      kind: 'greenhouse', board: 'lattice' },
+  { name: 'Gusto',        kind: 'greenhouse', board: 'gusto' },
+  { name: 'Dropbox',      kind: 'greenhouse', board: 'dropbox' },
+  { name: 'Webflow',      kind: 'greenhouse', board: 'webflow' },
+  { name: 'Affirm',       kind: 'greenhouse', board: 'affirm' },
+  { name: 'Coinbase',     kind: 'greenhouse', board: 'coinbase' },
+  { name: 'Cloudflare',   kind: 'greenhouse', board: 'cloudflare' },
+  { name: 'Vercel',       kind: 'greenhouse', board: 'vercel' },
+  { name: 'CircleCI',     kind: 'greenhouse', board: 'circleci' },
   { name: 'Zapier',       kind: 'ashby',      board: 'zapier', allRemote: true },
   { name: 'Oyster',       kind: 'ashby',      board: 'oyster', allRemote: true },
   { name: 'Linear',       kind: 'ashby',      board: 'linear' },
   { name: 'Supabase',     kind: 'ashby',      board: 'supabase', allRemote: true },
   { name: 'Deel',         kind: 'ashby',      board: 'deel' },
   { name: 'Notion',       kind: 'ashby',      board: 'notion' },
-  { name: 'Ramp',         kind: 'ashby',      board: 'ramp' }
+  { name: 'Ramp',         kind: 'ashby',      board: 'ramp' },
+  { name: 'PostHog',      kind: 'ashby',      board: 'posthog', allRemote: true },
+  { name: 'ClickUp',      kind: 'ashby',      board: 'clickup' }
 ];
 
 const REMOTE_LOC_RE = /(remote|anywhere|worldwide|distributed|global|work from home)/i;
