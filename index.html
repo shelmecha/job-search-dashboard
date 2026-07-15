@@ -144,7 +144,24 @@
     font-family: inherit; transition: all .12s ease;
   }
   .toggle:hover { border-color: var(--border2); color: var(--text); }
-  .toggle.on { color: var(--good); background: var(--good-soft); border-color: rgba(56,199,147,0.4); }
+  .toggle.on { color: var(--good); background: var(--good-soft); border-color: rgba(4,120,87,0.35); }
+
+  .view-tabs { display: flex; gap: 8px; margin-bottom: 26px; }
+  .vtab {
+    padding: 9px 17px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text2); font-weight: 600; font-size: 13.5px; cursor: pointer; font-family: inherit;
+    transition: all .12s ease;
+  }
+  .vtab:hover { border-color: var(--border2); color: var(--text); }
+  .vtab.on { background: var(--text); color: #fff; border-color: var(--text); }
+
+  .all-controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .search-input {
+    flex: 1; min-width: 220px; max-width: 460px; padding: 11px 14px;
+    border: 1px solid var(--border); border-radius: 9px; font: inherit; font-size: 14px;
+    color: var(--text); background: var(--surface); outline: none;
+  }
+  .search-input:focus { border-color: var(--border2); }
   .job-src { font-size: 10.5px; color: var(--text3); flex: none; text-transform: uppercase; letter-spacing: 0.04em; }
   .job-meta { font-size: 12px; color: var(--text3); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
   .job-meta span:not(:last-child)::after { content: '·'; margin-left: 10px; color: var(--text3); }
@@ -192,7 +209,22 @@
 </header>
 
 <main class="wrap">
+  <div class="view-tabs">
+    <button class="vtab on" id="vtab-matched" onclick="setView('matched')">Matched to my roles</button>
+    <button class="vtab" id="vtab-all" onclick="setView('all')">Browse everything <span id="allCount"></span></button>
+  </div>
   <div class="role-grid" id="roleGrid"></div>
+  <div id="allSection" style="display:none;">
+    <div class="all-controls">
+      <input id="allSearch" class="search-input" type="search" placeholder="Search title or company…" oninput="onAllSearch(this.value)">
+      <select id="allSource" class="search-input" style="max-width:230px;" onchange="onAllSource(this.value)">
+        <option value="">All sources</option>
+      </select>
+      <span class="status-line" id="allResultCount" style="align-self:center;"></span>
+    </div>
+    <div id="allList" class="match-list" style="padding-left:0;"></div>
+    <div class="show-more" style="padding-left:0; margin-top:14px;" id="allMore"></div>
+  </div>
 </main>
 
 <footer class="wrap">
@@ -419,10 +451,18 @@ async function fetchRemoteOK() {
 }
 
 async function fetchJobicy() {
-  const r = await fetch('https://jobicy.com/api/v2/remote-jobs?count=50');
-  if (!r.ok) throw new Error('bad status ' + r.status);
-  const data = await r.json();
-  return (data.jobs || []).map(j => ({
+  const tags = ['', 'operations', 'assistant', 'coordinator', 'crm'];
+  const results = await Promise.allSettled(tags.map(t =>
+    fetch(`https://jobicy.com/api/v2/remote-jobs?count=50${t ? '&tag=' + encodeURIComponent(t) : ''}`)
+      .then(r => { if (!r.ok) throw new Error('bad status ' + r.status); return r.json(); })
+  ));
+  const seen = new Map();
+  for (const res of results) {
+    if (res.status !== 'fulfilled') continue;
+    for (const j of (res.value.jobs || [])) if (!seen.has(j.id)) seen.set(j.id, j);
+  }
+  if (!seen.size && results.every(r => r.status === 'rejected')) throw new Error('Jobicy unreachable');
+  return Array.from(seen.values()).map(j => ({
     id: 'jobicy-' + j.id,
     title: j.jobTitle,
     company: j.companyName,
@@ -626,7 +666,40 @@ window.toggleFilter = function(name) {
   filters[name] = !filters[name];
   document.getElementById('flt-' + name).classList.toggle('on', filters[name]);
   if (window._lastBuckets) renderResults(window._lastBuckets);
+  if (view === 'all') renderAll();
 };
+
+let view = 'matched', allShown = 60, allQuery = '', allSource = '';
+
+window.setView = function(v) {
+  view = v;
+  allShown = 60;
+  document.getElementById('vtab-matched').classList.toggle('on', v === 'matched');
+  document.getElementById('vtab-all').classList.toggle('on', v === 'all');
+  document.getElementById('roleGrid').style.display = v === 'matched' ? 'grid' : 'none';
+  document.getElementById('allSection').style.display = v === 'all' ? 'block' : 'none';
+  if (v === 'all') renderAll();
+};
+
+window.onAllSearch = function(q) { allQuery = q.toLowerCase().trim(); allShown = 60; renderAll(); };
+window.onAllSource = function(s) { allSource = s; allShown = 60; renderAll(); };
+window.showMoreAll = function() { allShown += 120; renderAll(); };
+
+function renderAll() {
+  const list = (window._allJobs || []).filter(j =>
+    (!allQuery || (j.title + ' ' + j.company).toLowerCase().includes(allQuery)) &&
+    (!allSource || j.source === allSource) &&
+    (!filters.worldwide || j._worldwide) &&
+    (!filters.contract || j._contract)
+  );
+  document.getElementById('allResultCount').textContent = list.length + ' listing' + (list.length === 1 ? '' : 's');
+  document.getElementById('allList').innerHTML = list.length
+    ? list.slice(0, allShown).map(jobRow).join('')
+    : '<div class="empty-state" style="padding-left:0;">No listings match this search/filter combination.</div>';
+  document.getElementById('allMore').innerHTML = list.length > allShown
+    ? `<button onclick="showMoreAll()">Show more (${list.length - allShown} remaining)</button>`
+    : '';
+}
 
 async function runSearch() {
   const btn = document.getElementById('refreshBtn');
@@ -667,10 +740,23 @@ async function runSearch() {
     banner.classList.add('show');
   }
 
+  jobs = jobs.map(j => {
+    const f = jobFlags(j);
+    return { ...j, _ai: aiTooling(j._text).hit, _contract: f.contract, _worldwide: f.worldwide };
+  });
+  window._allJobs = jobs.slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+  document.getElementById('allCount').textContent = `(${jobs.length})`;
+  const srcSel = document.getElementById('allSource');
+  const prevSrc = srcSel.value;
+  const srcNames = [...new Set(jobs.map(j => j.source))].sort();
+  srcSel.innerHTML = '<option value="">All sources</option>' + srcNames.map(s => `<option${s === prevSrc ? ' selected' : ''}>${s}</option>`).join('');
+  allSource = srcSel.value;
+
   const buckets = classify(jobs);
   window._lastBuckets = buckets;
   expandedState = {};
   renderResults(buckets);
+  if (view === 'all') renderAll();
 
   const matched = ROLES.reduce((sum, r) => sum + (buckets[r.id]?.length || 0), 0) + (buckets.general?.length || 0);
   document.getElementById('statScanned').textContent = jobs.length;
