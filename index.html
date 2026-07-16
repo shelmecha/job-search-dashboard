@@ -204,16 +204,41 @@
   /* ============================================================
      STICKER CARDS
   ============================================================ */
-  .role-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px; }
-  @media (max-width: 860px) { .role-grid { grid-template-columns: 1fr; } }
+  /* Horizontal "swim lanes": role cards scroll sideways; the Other-ops
+     section lives full-width below in .general-wrap. */
+  .role-strip {
+    display: flex; gap: 32px; align-items: flex-start;
+    overflow-x: auto; overflow-y: visible;
+    padding: 6px 6px 26px; margin: 0 -6px;
+    scroll-snap-type: x proximity; scroll-behavior: smooth;
+  }
+  .role-strip > .role-card { flex: 0 0 min(480px, 86vw); scroll-snap-align: start; }
+  .role-strip > .role-card-minimal { flex: 0 0 300px; align-self: flex-start; }
+  .role-strip > .role-card-minimal.is-closed { cursor: pointer; }
+  .general-wrap { margin-top: 40px; }
+  @media (max-width: 860px) {
+    .role-strip > .role-card { flex-basis: 86vw; }
+    .role-strip > .role-card-minimal { flex-basis: 70vw; }
+  }
 
   .role-card {
+    position: relative;
     background: var(--card); border: 2px solid var(--fg); border-radius: var(--r-lg);
     padding: 32px; display: flex; flex-direction: column;
     box-shadow: var(--shadow-card);
     transition: transform .3s var(--bounce), box-shadow .3s var(--bounce);
     animation: pop .45s var(--bounce) both;
   }
+  .role-close {
+    position: absolute; top: 18px; right: 18px; z-index: 2;
+    width: 30px; height: 30px; border-radius: 50%; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; line-height: 1; cursor: pointer;
+    background: var(--card); color: var(--muted-fg);
+    border: 2px solid var(--fg); box-shadow: 2px 2px 0 0 var(--fg);
+    transition: transform .2s var(--bounce), box-shadow .2s var(--bounce);
+  }
+  .role-close:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 0 var(--fg); background: var(--secondary); color: #fff; }
   .role-card:nth-child(2) { animation-delay: .05s; }
   .role-card:nth-child(3) { animation-delay: .1s; }
   .role-card:nth-child(4) { animation-delay: .15s; }
@@ -225,10 +250,12 @@
   @keyframes pop { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
   .role-card:hover { transform: translate(-3px, -3px); }
   .role-card.featured { box-shadow: 8px 8px 0px 0px var(--secondary); }
-  .role-card-minimal { padding: 18px 24px; opacity: .6; }
+  .role-card-minimal { padding: 18px 24px; opacity: .62; }
+  .role-card-minimal.is-closed:hover { opacity: 1; transform: translate(-3px,-3px); }
   .role-card-minimal .role-head { margin-bottom: 0; align-items: center; }
   .role-card-minimal .rank-badge { width: 32px; height: 32px; font-size: .8em; }
   .role-card-minimal .match-count { margin: 0; }
+  .role-reopen { font-size: 12px; font-weight: 700; color: var(--accent); margin-top: 8px; }
 
   .role-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
   .rank-badge {
@@ -484,7 +511,8 @@
     <button class="vtab" id="vtab-applied" onclick="setView('applied')">✓ Applied <span id="appliedTabCount"></span></button>
     <button class="vtab" id="vtab-hidden" onclick="setView('hidden')">✗ Hidden <span id="hiddenTabCount"></span></button>
   </div>
-  <div class="role-grid" id="roleGrid"></div>
+  <div class="role-strip" id="roleGrid"></div>
+  <div class="general-wrap" id="generalWrap"></div>
   <div id="allSection" style="display:none;">
     <div class="all-controls">
       <input id="allSearch" class="search-input" type="search" placeholder="Search title or company…" oninput="onAllSearch(this.value)">
@@ -1133,20 +1161,22 @@ function renderSkeleton() {
   `)).join('');
 }
 
-function roleCardShell(role, bodyHtml, minimal) {
+function roleCardShell(role, bodyHtml, minimal, closedByUser) {
   if (minimal) {
     return `
-    <div class="role-card role-card-minimal">
+    <div class="role-card role-card-minimal${closedByUser ? ' is-closed' : ''}"${closedByUser ? ` onclick="openRole('${role.id}')" title="Click to reopen"` : ''}>
       <div class="role-head">
         <div class="rank-badge" style="background:${role.accent}; color:${role.accent === '#8B5CF6' ? '#fff' : '#1E293B'};">#${role.rank}</div>
         <div class="role-title">${escapeHtml(role.title)}</div>
       </div>
       <div id="body-${role.id}">${bodyHtml}</div>
+      ${closedByUser ? '<div class="role-reopen">↻ Reopen</div>' : ''}
     </div>`;
   }
   const links = externalLinks(role);
   return `
   <div class="role-card${role.rank === 1 ? ' featured' : ''}">
+    <button class="role-close" onclick="closeRole('${role.id}')" aria-label="Collapse this role" title="Done reviewing — collapse">×</button>
     <div class="role-head">
       <div class="rank-badge" style="background:${role.accent}; color:${role.accent === '#8B5CF6' ? '#fff' : '#1E293B'};">#${role.rank}</div>
       <div>
@@ -1194,15 +1224,20 @@ function renderResults(buckets) {
     const count = applyFilters(rawList).length;
     return { role, count };
   });
-  const ordered = withCounts.filter(x => x.count > 0).concat(withCounts.filter(x => x.count === 0));
-  grid.innerHTML = ordered.map(({ role, count }) =>
-    roleCardShell(role, bucketBody(role.id, buckets[role.id] || [], count === 0), count === 0)
-  ).join('');
+  // Cards the user has collapsed, or that have zero matches, are "minimal" and
+  // sort to the right end of the strip; active ones stay on the left.
+  const isMinimal = ({ role, count }) => count === 0 || collapsedRoles.has(role.id);
+  const ordered = withCounts.filter(x => !isMinimal(x)).concat(withCounts.filter(isMinimal));
+  grid.innerHTML = ordered.map(({ role, count }) => {
+    const closedByUser = count > 0 && collapsedRoles.has(role.id);
+    const minimal = count === 0 || closedByUser;
+    return roleCardShell(role, bucketBody(role.id, buckets[role.id] || [], minimal), minimal, closedByUser);
+  }).join('');
 
+  const wrap = document.getElementById('generalWrap');
   const general = buckets.general || [];
-  if (general.length) {
-    grid.innerHTML += `
-    <div class="role-card" style="grid-column: 1 / -1;">
+  wrap.innerHTML = general.length ? `
+    <div class="role-card">
       <div class="role-head">
         <div class="rank-badge" style="background:#F1F5F9; color:#64748B;">+</div>
         <div>
@@ -1211,13 +1246,23 @@ function renderResults(buckets) {
         </div>
       </div>
       ${bucketBody('general', general)}
-    </div>`;
-  }
+    </div>` : '';
 }
 
 window.toggleExpand = function(roleId) {
   expandedState[roleId] = !expandedState[roleId];
   renderResults(window._lastBuckets);
+};
+
+// Session-only collapse state (resets on reload, per Shelvi's preference).
+const collapsedRoles = new Set();
+window.closeRole = function(roleId) {
+  collapsedRoles.add(roleId);
+  if (window._lastBuckets) renderResults(window._lastBuckets);
+};
+window.openRole = function(roleId) {
+  collapsedRoles.delete(roleId);
+  if (window._lastBuckets) renderResults(window._lastBuckets);
 };
 
 window.toggleFilter = function(name) {
@@ -1236,7 +1281,8 @@ window.setView = function(v) {
   document.getElementById('vtab-all').classList.toggle('on', v === 'all');
   document.getElementById('vtab-applied').classList.toggle('on', v === 'applied');
   document.getElementById('vtab-hidden').classList.toggle('on', v === 'hidden');
-  document.getElementById('roleGrid').style.display = v === 'matched' ? 'grid' : 'none';
+  document.getElementById('roleGrid').style.display = v === 'matched' ? 'flex' : 'none';
+  document.getElementById('generalWrap').style.display = v === 'matched' ? 'block' : 'none';
   document.getElementById('allSection').style.display = v === 'all' ? 'block' : 'none';
   document.getElementById('appliedSection').style.display = v === 'applied' ? 'block' : 'none';
   document.getElementById('hiddenSection').style.display = v === 'hidden' ? 'block' : 'none';
