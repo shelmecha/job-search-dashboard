@@ -497,6 +497,46 @@
   .hidden-card .applied-title:hover { color: var(--fg); }
 
   /* ============================================================
+     LOADING SCREEN — pixel Pug & Pom at work
+  ============================================================ */
+  .loader {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+    background: var(--bg);
+    background-image: radial-gradient(var(--border) 1.4px, transparent 1.4px);
+    background-size: 22px 22px;
+    transition: opacity .5s ease, visibility .5s ease;
+  }
+  .loader--hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .loader-scene {
+    display: flex; align-items: flex-end; gap: 26px;
+    padding: 22px 30px; background: var(--card);
+    border: 2px solid var(--fg); border-radius: var(--r-lg);
+    box-shadow: 8px 8px 0 0 var(--secondary);
+  }
+  .pixel-dog { width: 128px; height: 128px; shape-rendering: crispEdges; }
+  #pug { animation: dogBob 1s ease-in-out infinite; }
+  #pom { animation: dogBob 1s ease-in-out infinite .5s; }
+  @keyframes dogBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+  .pixel-ball {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--tertiary); border: 2px solid var(--fg);
+    align-self: flex-end; margin-bottom: 10px;
+    animation: ballBounce 1s ease-in-out infinite;
+  }
+  @keyframes ballBounce {
+    0%,100% { transform: translateY(0) scaleY(.92); }
+    50% { transform: translateY(-58px) scaleY(1.05); }
+  }
+  .loader-text { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 22px; color: var(--fg); letter-spacing: -.01em; }
+  .loader-text .dots i { font-style: normal; opacity: .2; animation: dotBlink 1.2s infinite; }
+  .loader-text .dots i:nth-child(2) { animation-delay: .2s; }
+  .loader-text .dots i:nth-child(3) { animation-delay: .4s; }
+  @keyframes dotBlink { 0%,100% { opacity: .2; } 50% { opacity: 1; } }
+  .loader-sub { font-size: 13.5px; color: var(--muted-fg); font-weight: 600; }
+  @media (max-width: 860px) { .pixel-dog { width: 96px; height: 96px; } .loader-text { font-size: 18px; } }
+
+  /* ============================================================
      FOCUS, MOTION, MOBILE
   ============================================================ */
   button:focus-visible, a:focus-visible, .search-input:focus-visible {
@@ -517,6 +557,55 @@
 </style>
 </head>
 <body>
+
+<div class="loader" id="loader">
+  <div class="loader-scene">
+    <svg class="pixel-dog" id="pug" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" aria-label="pixel pug"></svg>
+    <div class="pixel-ball" aria-hidden="true"></div>
+    <svg class="pixel-dog" id="pom" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" aria-label="pixel pomeranian"></svg>
+  </div>
+  <div class="loader-text">Sniffing out remote jobs<span class="dots"><i>.</i><i>.</i><i>.</i></span></div>
+  <div class="loader-sub">Pug &amp; Pom are on the case…</div>
+</div>
+<script>
+// Build the two pixel dogs from tiny bitmaps so the loader shows instantly.
+(function () {
+  const PUG = {
+    legend: { F: '#e6c6a0', K: '#4a3b34', P: '#1e1e1e', N: '#111111', T: '#f28fb0' },
+    rows: [
+      '..............', '...FFFFFFFF...', '..KFFFFFFFFK..', '..KFFFFFFFFK..',
+      '..KFFFFFFFFK..', '...FFFFFFFF...', '...FPFFFFPF...', '...FFKKKKFF...',
+      '...FFKNNKFF...', '...FFKTTKFF...', '....FFFFFF....', '....FFFFFF....',
+      '....FF..FF....', '....FF..FF....'
+    ]
+  };
+  const POM = {
+    legend: { O: '#e8912e', C: '#f7dca8', P: '#241a12', N: '#241a12' },
+    rows: [
+      '..O........O..', '..OO......OO..', '..OOOOOOOOOO..', '..OOOOOOOOOO..',
+      '..OOPOOOOPOO..', '..OOOOOOOOOO..', '..OOOONNOOOO..', '..OOCCCCCCOO..',
+      '..OCCCCCCCCO..', '..OCCCCCCCCO..', '..OCCCCCCCCO..', '..OOCCCCCCOO..',
+      '..OO.OOOO.OO..', '..OO......OO..'
+    ]
+  };
+  function build(id, spec) {
+    const svg = document.getElementById(id);
+    if (!svg) return;
+    let out = '';
+    spec.rows.forEach((row, y) => {
+      for (let x = 0; x < row.length; x++) {
+        const c = spec.legend[row[x]];
+        if (c) out += '<rect x="' + x + '" y="' + y + '" width="1.02" height="1.02" fill="' + c + '"/>';
+      }
+    });
+    svg.innerHTML = out;
+  }
+  build('pug', PUG);
+  build('pom', POM);
+  // Safety net: never leave the loader up forever if a fetch hangs.
+  setTimeout(function () { document.getElementById('loader').classList.add('loader--hidden'); }, 20000);
+})();
+</script>
 
 <nav class="topbar">
   <span class="brand">🎯 Shelvi's Job Hunt</span>
@@ -1333,6 +1422,13 @@ function renderHiddenDock(items) {
   document.getElementById('dockCards').innerHTML = badges + showAll;
 }
 
+// Which roles/sections are currently hidden (drives the dock without a full re-render).
+function hiddenItemsList() {
+  const items = ROLES.filter(r => collapsedRoles.has(r.id));
+  if (collapsedRoles.has('general') && (window._lastBuckets?.general || []).length) items.push(GENERAL_ROLE);
+  return items;
+}
+
 window.toggleExpand = function(roleId) {
   expandedState[roleId] = !expandedState[roleId];
   renderResults(window._lastBuckets);
@@ -1342,11 +1438,16 @@ window.toggleExpand = function(roleId) {
 const collapsedRoles = new Set();
 const REDUCE_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 window.closeRole = function(roleId) {
-  const commit = () => { collapsedRoles.add(roleId); if (window._lastBuckets) renderResults(window._lastBuckets); };
   const card = document.querySelector(`.role-card[data-role="${roleId}"]`);
+  // Targeted update: remove just this card + refresh the dock. Avoids rebuilding
+  // the whole strip's innerHTML (which was the source of the hide lag).
+  const commit = () => {
+    collapsedRoles.add(roleId);
+    if (card && card.parentNode) card.parentNode.removeChild(card);
+    renderHiddenDock(hiddenItemsList());
+  };
   if (card && !REDUCE_MOTION) {
-    // Fly the card off toward the left dock, then swap it out.
-    card.classList.add('role-card--closing');
+    card.classList.add('role-card--closing');   // fly toward the left dock
     setTimeout(commit, 360);
   } else { commit(); }
 };
@@ -1464,6 +1565,7 @@ async function runSearch() {
   window._lastBuckets = buckets;
   expandedState = {};
   renderResults(buckets);
+  document.getElementById('loader').classList.add('loader--hidden');
   if (view === 'all') renderAll();
 
   const matched = ROLES.reduce((sum, r) => sum + (buckets[r.id]?.length || 0), 0) + (buckets.general?.length || 0);
@@ -1486,44 +1588,9 @@ window.addEventListener('scroll', () => {
   document.getElementById('backTop').classList.toggle('show', window.scrollY > 500);
 }, { passive: true });
 
-// Eased wheel scrolling — lerp the window toward a target position each frame
-// so mouse-wheel scrolling glides instead of stepping. Skipped on touch devices
-// (they have native momentum), on coarse pointers, and when the user prefers
-// reduced motion. Ctrl+wheel (zoom) and modifier scrolls are left to the browser.
-(function () {
-  const fine = window.matchMedia('(pointer: fine)').matches;
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!fine || reduce) return;
-
-  let target = window.scrollY;
-  let current = window.scrollY;
-  let running = false;
-  const EASE = 0.12;      // lower = smoother/slower catch-up
-  const STEP = 1;         // wheel delta multiplier
-
-  function maxScroll() {
-    return document.documentElement.scrollHeight - window.innerHeight;
-  }
-  function frame() {
-    current += (target - current) * EASE;
-    if (Math.abs(target - current) < 0.5) { current = target; running = false; }
-    // 'instant' overrides the CSS scroll-behavior:smooth so our lerp is the
-    // only thing easing the motion (otherwise each frame re-animates → jank).
-    window.scrollTo({ top: current, behavior: 'instant' });
-    if (running) requestAnimationFrame(frame);
-  }
-  window.addEventListener('wheel', (e) => {
-    if (e.ctrlKey || e.metaKey || e.deltaMode !== 0) return;     // zoom / line/page mode → native
-    if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // horizontal intent (e.g. the role strip) → native
-    e.preventDefault();
-    target = Math.max(0, Math.min(maxScroll(), target + e.deltaY * STEP));
-    if (!running) { running = true; requestAnimationFrame(frame); }
-  }, { passive: false });
-  // Keep target in sync when scroll position changes by other means (keyboard,
-  // back-to-top button, tab-switch auto-scroll, resize).
-  window.addEventListener('scroll', () => { if (!running) { target = current = window.scrollY; } }, { passive: true });
-  window.addEventListener('resize', () => { target = current = window.scrollY; });
-})();
+// Scrolling is left to the browser's native (GPU-accelerated) path; a JS
+// wheel-lerp was removed because it caused jank. CSS scroll-behavior:smooth
+// still eases the back-to-top button and tab-switch jumps.
 
 updateAppliedCounts();
 renderSkeleton();
