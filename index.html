@@ -1418,7 +1418,8 @@ window.addEventListener('scroll', () => {
     if (running) requestAnimationFrame(frame);
   }
   window.addEventListener('wheel', (e) => {
-    if (e.ctrlKey || e.metaKey || e.deltaMode !== 0) return; // zoom / line/page mode → native
+    if (e.ctrlKey || e.metaKey || e.deltaMode !== 0) return;     // zoom / line/page mode → native
+    if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // horizontal intent (e.g. the role strip) → native
     e.preventDefault();
     target = Math.max(0, Math.min(maxScroll(), target + e.deltaY * STEP));
     if (!running) { running = true; requestAnimationFrame(frame); }
