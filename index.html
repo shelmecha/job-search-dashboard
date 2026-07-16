@@ -242,6 +242,40 @@
     transition: transform .2s var(--bounce), box-shadow .2s var(--bounce);
   }
   .role-close:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 0 var(--fg); background: var(--secondary); color: #fff; }
+
+  /* Left-edge dock for hidden roles: peeks a sliver, slides out on hover. */
+  .hidden-dock { position: fixed; left: 0; top: 50%; transform: translateY(-50%); z-index: 60; }
+  .dock-slide {
+    display: flex; align-items: stretch;
+    transform: translateX(calc(-100% + 24px));
+    transition: transform .38s var(--bounce);
+  }
+  .hidden-dock:hover .dock-slide, .hidden-dock:focus-within .dock-slide { transform: translateX(0); }
+  .dock-cards {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 16px 14px; background: var(--card);
+    border: 2px solid var(--fg); border-left: none;
+    border-radius: 0 var(--r-md) var(--r-md) 0;
+    box-shadow: 4px 4px 0 0 var(--border);
+  }
+  .dock-badge {
+    width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 15px;
+    border: 2px solid var(--fg); box-shadow: 2px 2px 0 0 var(--fg);
+    transition: transform .2s var(--bounce), box-shadow .2s var(--bounce);
+  }
+  .dock-badge:hover { transform: translate(-2px,-2px); box-shadow: 4px 4px 0 0 var(--fg); }
+  .dock-handle {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    width: 24px; background: var(--accent); color: #fff;
+    border: 2px solid var(--fg); border-left: none;
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    box-shadow: 2px 2px 0 0 var(--fg); cursor: pointer;
+  }
+  .dock-count { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 13px; }
+  .dock-arrow { font-size: 15px; font-weight: 800; line-height: 1; }
+  .hidden-dock:hover .dock-arrow { transform: rotate(180deg); }
   .role-card:nth-child(2) { animation-delay: .05s; }
   .role-card:nth-child(3) { animation-delay: .1s; }
   .role-card:nth-child(4) { animation-delay: .15s; }
@@ -516,6 +550,14 @@
   </div>
   <div class="role-strip" id="roleGrid"></div>
   <div class="general-wrap" id="generalWrap"></div>
+  <!-- Collapsed roles slide into this left-edge dock: mostly off-screen, peeking
+       a sliver; hover to slide it out and click a number to bring a card back. -->
+  <div class="hidden-dock" id="hiddenDock" style="display:none;" aria-label="Hidden roles">
+    <div class="dock-slide">
+      <div class="dock-cards" id="dockCards"></div>
+      <div class="dock-handle"><span class="dock-count" id="dockCount">0</span><span class="dock-arrow">›</span></div>
+    </div>
+  </div>
   <div id="allSection" style="display:none;">
     <div class="all-controls">
       <input id="allSearch" class="search-input" type="search" placeholder="Search title or company…" oninput="onAllSearch(this.value)">
@@ -1227,15 +1269,15 @@ function renderResults(buckets) {
     const count = applyFilters(rawList).length;
     return { role, count };
   });
-  // Cards the user has collapsed, or that have zero matches, are "minimal" and
-  // sort to the right end of the strip; active ones stay on the left.
-  const isMinimal = ({ role, count }) => count === 0 || collapsedRoles.has(role.id);
-  const ordered = withCounts.filter(x => !isMinimal(x)).concat(withCounts.filter(isMinimal));
-  grid.innerHTML = ordered.map(({ role, count }) => {
-    const closedByUser = count > 0 && collapsedRoles.has(role.id);
-    const minimal = count === 0 || closedByUser;
-    return roleCardShell(role, bucketBody(role.id, buckets[role.id] || [], minimal), minimal, closedByUser);
-  }).join('');
+  // Roles the user has hidden slide into the left-edge dock (not the strip).
+  // Zero-match roles stay in the strip as minimal cards, sorted to the right.
+  const inStrip = withCounts.filter(x => !collapsedRoles.has(x.role.id));
+  const hiddenRoles = withCounts.filter(x => collapsedRoles.has(x.role.id)).map(x => x.role);
+  const ordered = inStrip.filter(x => x.count > 0).concat(inStrip.filter(x => x.count === 0));
+  grid.innerHTML = ordered.map(({ role, count }) =>
+    roleCardShell(role, bucketBody(role.id, buckets[role.id] || [], count === 0), count === 0, false)
+  ).join('');
+  renderHiddenDock(hiddenRoles);
 
   const wrap = document.getElementById('generalWrap');
   const general = buckets.general || [];
@@ -1250,6 +1292,16 @@ function renderResults(buckets) {
       </div>
       ${bucketBody('general', general)}
     </div>` : '';
+}
+
+function renderHiddenDock(roles) {
+  const dock = document.getElementById('hiddenDock');
+  if (!roles.length || view !== 'matched') { dock.style.display = 'none'; return; }
+  dock.style.display = 'block';
+  document.getElementById('dockCount').textContent = roles.length;
+  document.getElementById('dockCards').innerHTML = roles.map(r =>
+    `<button class="dock-badge" onclick="openRole('${r.id}')" title="Reopen: ${escapeHtml(r.title)}" style="background:${r.accent}; color:${r.accent === '#8B5CF6' ? '#fff' : '#1E293B'};">#${r.rank}</button>`
+  ).join('');
 }
 
 window.toggleExpand = function(roleId) {
@@ -1286,6 +1338,7 @@ window.setView = function(v) {
   document.getElementById('vtab-hidden').classList.toggle('on', v === 'hidden');
   document.getElementById('roleGrid').style.display = v === 'matched' ? 'flex' : 'none';
   document.getElementById('generalWrap').style.display = v === 'matched' ? 'block' : 'none';
+  document.getElementById('hiddenDock').style.display = (v === 'matched' && collapsedRoles.size) ? 'block' : 'none';
   document.getElementById('allSection').style.display = v === 'all' ? 'block' : 'none';
   document.getElementById('appliedSection').style.display = v === 'applied' ? 'block' : 'none';
   document.getElementById('hiddenSection').style.display = v === 'hidden' ? 'block' : 'none';
