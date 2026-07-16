@@ -217,7 +217,6 @@
   }
   .role-strip > .role-card { flex: 0 0 min(600px, 90vw); scroll-snap-align: start; }
   .role-strip > .role-card-minimal { flex: 0 0 320px; align-self: flex-start; }
-  .role-strip > .role-card-minimal.is-closed { cursor: pointer; }
   .general-wrap { margin-top: 40px; }
   @media (max-width: 860px) {
     .role-strip > .role-card { flex-basis: 88vw; }
@@ -274,8 +273,27 @@
     box-shadow: 2px 2px 0 0 var(--fg); cursor: pointer;
   }
   .dock-count { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 13px; }
-  .dock-arrow { font-size: 15px; font-weight: 800; line-height: 1; }
+  .dock-arrow { font-size: 15px; font-weight: 800; line-height: 1; transition: transform .38s var(--bounce); }
   .hidden-dock:hover .dock-arrow { transform: rotate(180deg); }
+  .dock-badge { animation: pop .28s var(--bounce) both; }
+  .dock-all {
+    margin-top: 4px; width: 44px; padding: 8px 4px; cursor: pointer;
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 11px; line-height: 1.15;
+    text-transform: uppercase; letter-spacing: .02em; text-align: center;
+    background: var(--muted); color: var(--fg);
+    border: 2px dashed var(--fg); border-radius: var(--r-sm);
+    transition: transform .2s var(--bounce), background .2s ease, color .2s ease;
+  }
+  .dock-all:hover { background: var(--accent); color: #fff; transform: translate(-2px,-2px); }
+
+  /* Fly-out when a card is hidden: sails toward the left dock, shrinks, fades. */
+  .role-card--closing {
+    animation: none !important;
+    transition: transform .4s var(--bounce), opacity .3s ease, box-shadow .3s ease !important;
+    transform: translateX(-160px) scale(.62) rotate(-5deg) !important;
+    opacity: 0 !important; box-shadow: none !important; pointer-events: none;
+  }
+  .role-card-minimal .role-head { padding-right: 30px; }
   .role-card:nth-child(2) { animation-delay: .05s; }
   .role-card:nth-child(3) { animation-delay: .1s; }
   .role-card:nth-child(4) { animation-delay: .15s; }
@@ -288,11 +306,10 @@
   .role-card:hover { transform: translate(-3px, -3px); }
   .role-card.featured { box-shadow: 8px 8px 0px 0px var(--secondary); }
   .role-card-minimal { padding: 18px 24px; opacity: .62; }
-  .role-card-minimal.is-closed:hover { opacity: 1; transform: translate(-3px,-3px); }
+  .role-card-minimal:hover { opacity: 1; }
   .role-card-minimal .role-head { margin-bottom: 0; align-items: center; }
   .role-card-minimal .rank-badge { width: 32px; height: 32px; font-size: .8em; }
   .role-card-minimal .match-count { margin: 0; }
-  .role-reopen { font-size: 12px; font-weight: 700; color: var(--accent); margin-top: 8px; }
 
   .role-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
   .rank-badge {
@@ -1206,22 +1223,23 @@ function renderSkeleton() {
   `)).join('');
 }
 
-function roleCardShell(role, bodyHtml, minimal, closedByUser) {
+function roleCardShell(role, bodyHtml, minimal) {
+  const closeBtn = `<button class="role-close" onclick="closeRole('${role.id}')" aria-label="Hide this role" title="Hide — sends it to the left dock">×</button>`;
   if (minimal) {
     return `
-    <div class="role-card role-card-minimal${closedByUser ? ' is-closed' : ''}"${closedByUser ? ` onclick="openRole('${role.id}')" title="Click to reopen"` : ''}>
+    <div class="role-card role-card-minimal" data-role="${role.id}">
+      ${closeBtn}
       <div class="role-head">
         <div class="rank-badge" style="background:${role.accent}; color:${role.accent === '#8B5CF6' ? '#fff' : '#1E293B'};">#${role.rank}</div>
         <div class="role-title">${escapeHtml(role.title)}</div>
       </div>
       <div id="body-${role.id}">${bodyHtml}</div>
-      ${closedByUser ? '<div class="role-reopen">↻ Reopen</div>' : ''}
     </div>`;
   }
   const links = externalLinks(role);
   return `
-  <div class="role-card${role.rank === 1 ? ' featured' : ''}">
-    <button class="role-close" onclick="closeRole('${role.id}')" aria-label="Collapse this role" title="Done reviewing — collapse">×</button>
+  <div class="role-card${role.rank === 1 ? ' featured' : ''}" data-role="${role.id}">
+    ${closeBtn}
     <div class="role-head">
       <div class="rank-badge" style="background:${role.accent}; color:${role.accent === '#8B5CF6' ? '#fff' : '#1E293B'};">#${role.rank}</div>
       <div>
@@ -1272,17 +1290,19 @@ function renderResults(buckets) {
   // Roles the user has hidden slide into the left-edge dock (not the strip).
   // Zero-match roles stay in the strip as minimal cards, sorted to the right.
   const inStrip = withCounts.filter(x => !collapsedRoles.has(x.role.id));
-  const hiddenRoles = withCounts.filter(x => collapsedRoles.has(x.role.id)).map(x => x.role);
+  const hiddenItems = withCounts.filter(x => collapsedRoles.has(x.role.id)).map(x => x.role);
   const ordered = inStrip.filter(x => x.count > 0).concat(inStrip.filter(x => x.count === 0));
   grid.innerHTML = ordered.map(({ role, count }) =>
-    roleCardShell(role, bucketBody(role.id, buckets[role.id] || [], count === 0), count === 0, false)
+    roleCardShell(role, bucketBody(role.id, buckets[role.id] || [], count === 0), count === 0)
   ).join('');
-  renderHiddenDock(hiddenRoles);
 
+  // "Other ops" behaves like a hideable card too (id 'general', + badge).
   const wrap = document.getElementById('generalWrap');
   const general = buckets.general || [];
-  wrap.innerHTML = general.length ? `
-    <div class="role-card">
+  if (general.length && collapsedRoles.has('general')) hiddenItems.push(GENERAL_ROLE);
+  wrap.innerHTML = (general.length && !collapsedRoles.has('general')) ? `
+    <div class="role-card" data-role="general">
+      <button class="role-close" onclick="closeRole('general')" aria-label="Hide this section" title="Hide — sends it to the left dock">×</button>
       <div class="role-head">
         <div class="rank-badge" style="background:#F1F5F9; color:#64748B;">+</div>
         <div>
@@ -1292,16 +1312,25 @@ function renderResults(buckets) {
       </div>
       ${bucketBody('general', general)}
     </div>` : '';
+
+  renderHiddenDock(hiddenItems);
 }
 
-function renderHiddenDock(roles) {
+const GENERAL_ROLE = { id: 'general', rank: '+', title: 'Other ops / CRM / support-adjacent openings', accent: '#F1F5F9' };
+
+function renderHiddenDock(items) {
   const dock = document.getElementById('hiddenDock');
-  if (!roles.length || view !== 'matched') { dock.style.display = 'none'; return; }
+  if (!items.length || view !== 'matched') { dock.style.display = 'none'; return; }
   dock.style.display = 'block';
-  document.getElementById('dockCount').textContent = roles.length;
-  document.getElementById('dockCards').innerHTML = roles.map(r =>
-    `<button class="dock-badge" onclick="openRole('${r.id}')" title="Reopen: ${escapeHtml(r.title)}" style="background:${r.accent}; color:${r.accent === '#8B5CF6' ? '#fff' : '#1E293B'};">#${r.rank}</button>`
-  ).join('');
+  document.getElementById('dockCount').textContent = items.length;
+  const badges = items.map(r => {
+    const label = typeof r.rank === 'number' ? '#' + r.rank : r.rank;
+    return `<button class="dock-badge" onclick="openRole('${r.id}')" title="Reopen: ${escapeHtml(r.title)}" style="background:${r.accent}; color:${r.accent === '#8B5CF6' ? '#fff' : '#1E293B'};">${label}</button>`;
+  }).join('');
+  const showAll = items.length > 1
+    ? `<button class="dock-all" onclick="openAllRoles()" title="Show all hidden cards">↺ all</button>`
+    : '';
+  document.getElementById('dockCards').innerHTML = badges + showAll;
 }
 
 window.toggleExpand = function(roleId) {
@@ -1311,12 +1340,22 @@ window.toggleExpand = function(roleId) {
 
 // Session-only collapse state (resets on reload, per Shelvi's preference).
 const collapsedRoles = new Set();
+const REDUCE_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 window.closeRole = function(roleId) {
-  collapsedRoles.add(roleId);
-  if (window._lastBuckets) renderResults(window._lastBuckets);
+  const commit = () => { collapsedRoles.add(roleId); if (window._lastBuckets) renderResults(window._lastBuckets); };
+  const card = document.querySelector(`.role-card[data-role="${roleId}"]`);
+  if (card && !REDUCE_MOTION) {
+    // Fly the card off toward the left dock, then swap it out.
+    card.classList.add('role-card--closing');
+    setTimeout(commit, 360);
+  } else { commit(); }
 };
 window.openRole = function(roleId) {
   collapsedRoles.delete(roleId);
+  if (window._lastBuckets) renderResults(window._lastBuckets);
+};
+window.openAllRoles = function() {
+  collapsedRoles.clear();
   if (window._lastBuckets) renderResults(window._lastBuckets);
 };
 
