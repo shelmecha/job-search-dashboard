@@ -206,19 +206,22 @@
   ============================================================ */
   /* Horizontal "swim lanes": role cards scroll sideways; the Other-ops
      section lives full-width below in .general-wrap. */
+  /* Full-bleed strip: break out of the 1180px container to use the whole
+     viewport width so cards can be wide and nothing gets cramped/cut. */
   .role-strip {
     display: flex; gap: 32px; align-items: flex-start;
     overflow-x: auto; overflow-y: visible;
-    padding: 6px 6px 26px; margin: 0 -6px;
+    width: 100vw; margin-left: calc(50% - 50vw);
+    padding: 6px 28px 26px; scroll-padding-left: 28px;
     scroll-snap-type: x proximity; scroll-behavior: smooth;
   }
-  .role-strip > .role-card { flex: 0 0 min(480px, 86vw); scroll-snap-align: start; }
-  .role-strip > .role-card-minimal { flex: 0 0 300px; align-self: flex-start; }
+  .role-strip > .role-card { flex: 0 0 min(600px, 90vw); scroll-snap-align: start; }
+  .role-strip > .role-card-minimal { flex: 0 0 320px; align-self: flex-start; }
   .role-strip > .role-card-minimal.is-closed { cursor: pointer; }
   .general-wrap { margin-top: 40px; }
   @media (max-width: 860px) {
-    .role-strip > .role-card { flex-basis: 86vw; }
-    .role-strip > .role-card-minimal { flex-basis: 70vw; }
+    .role-strip > .role-card { flex-basis: 88vw; }
+    .role-strip > .role-card-minimal { flex-basis: 72vw; }
   }
 
   .role-card {
