@@ -223,6 +223,10 @@
   @keyframes pop { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
   .role-card:hover { transform: translate(-3px, -3px); }
   .role-card.featured { box-shadow: 8px 8px 0px 0px var(--secondary); }
+  .role-card-minimal { padding: 18px 24px; opacity: .6; }
+  .role-card-minimal .role-head { margin-bottom: 0; align-items: center; }
+  .role-card-minimal .rank-badge { width: 32px; height: 32px; font-size: .8em; }
+  .role-card-minimal .match-count { margin: 0; }
 
   .role-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
   .rank-badge {
@@ -1127,7 +1131,17 @@ function renderSkeleton() {
   `)).join('');
 }
 
-function roleCardShell(role, bodyHtml) {
+function roleCardShell(role, bodyHtml, minimal) {
+  if (minimal) {
+    return `
+    <div class="role-card role-card-minimal">
+      <div class="role-head">
+        <div class="rank-badge" style="background:${role.accent}; color:${role.accent === '#8B5CF6' ? '#fff' : '#1E293B'};">#${role.rank}</div>
+        <div class="role-title">${escapeHtml(role.title)}</div>
+      </div>
+      <div id="body-${role.id}">${bodyHtml}</div>
+    </div>`;
+  }
   const links = externalLinks(role);
   return `
   <div class="role-card${role.rank === 1 ? ' featured' : ''}">
@@ -1149,11 +1163,14 @@ function applyFilters(list) {
   return list.filter(j => (!filters.worldwide || j._worldwide) && (!filters.contract || j._contract) && (!filters.hideFreelancer || j.source !== 'Freelancer.com'));
 }
 
-function bucketBody(key, bucketList) {
+function bucketBody(key, bucketList, minimal) {
   const rawList = bucketList.filter(notTracked);
   const list = applyFilters(rawList);
   const hidden = rawList.length - list.length;
   if (list.length === 0) {
+    if (minimal) {
+      return `<div class="match-count">0 live matches${hidden>0?` · ${hidden} filtered out`:''}</div>`;
+    }
     const msg = hidden > 0
       ? `${hidden} match${hidden===1?'':'es'} hidden by your filters — clear them to see everything.`
       : `Nothing scoring as a direct hit right now across the job boards or watched company career pages — this role type is niche for public APIs. Use the search links above to check LinkedIn/Indeed/Google directly.`;
@@ -1170,7 +1187,15 @@ function bucketBody(key, bucketList) {
 
 function renderResults(buckets) {
   const grid = document.getElementById('roleGrid');
-  grid.innerHTML = ROLES.map(role => roleCardShell(role, bucketBody(role.id, buckets[role.id] || []))).join('');
+  const withCounts = ROLES.map(role => {
+    const rawList = (buckets[role.id] || []).filter(notTracked);
+    const count = applyFilters(rawList).length;
+    return { role, count };
+  });
+  const ordered = withCounts.filter(x => x.count > 0).concat(withCounts.filter(x => x.count === 0));
+  grid.innerHTML = ordered.map(({ role, count }) =>
+    roleCardShell(role, bucketBody(role.id, buckets[role.id] || [], count === 0), count === 0)
+  ).join('');
 
   const general = buckets.general || [];
   if (general.length) {
