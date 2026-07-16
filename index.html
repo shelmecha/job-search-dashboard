@@ -460,6 +460,7 @@
     <div class="filter-row">
       <button class="toggle" id="flt-worldwide" onclick="toggleFilter('worldwide')">🌍 Worldwide-open only</button>
       <button class="toggle" id="flt-contract" onclick="toggleFilter('contract')">Contract / freelance only</button>
+      <button class="toggle" id="flt-hideFreelancer" onclick="toggleFilter('hideFreelancer')">Hide Freelancer.com gigs</button>
     </div>
     <div class="banner" id="errorBanner"></div>
     <div class="stats" id="statsRow" style="display:none;">
@@ -665,7 +666,7 @@ const MIN_SCORE = 3;
 const MAX_SHOWN = 6;
 
 let expandedState = {};
-let filters = { worldwide: false, contract: false };
+let filters = { worldwide: false, contract: false, hideFreelancer: false };
 
 // Applied + hidden trackers — persisted in this browser's localStorage only (no server).
 // Both are re-checked against every fresh data pull, so marked jobs stay
@@ -944,27 +945,40 @@ async function fetchJobicy() {
   }));
 }
 
+// Pay-transparency laws (NY/CO/CA/WA...) mean many US postings state a real
+// range in the description even though the ATS has no structured salary
+// field for it. Pull it out with a regex rather than leaving rate blank.
+const SALARY_TEXT_RE = /\$\s?\d{2,3}(?:,\d{3})?(?:\s?[kK])?\s?(?:-|–|to)\s?\$?\s?\d{2,3}(?:,\d{3})?(?:\s?[kK])?/;
+function extractSalary(text) {
+  const m = (text || '').match(SALARY_TEXT_RE);
+  return m ? m[0].replace(/\s+/g, ' ').trim() : null;
+}
+
 async function fetchCompanyBoards() {
   const settled = await Promise.allSettled(COMPANY_BOARDS.map(async c => {
     if (c.kind === 'greenhouse') {
-      const r = await fetch(`https://boards-api.greenhouse.io/v1/boards/${c.board}/jobs`);
+      const r = await fetch(`https://boards-api.greenhouse.io/v1/boards/${c.board}/jobs?content=true`);
       if (!r.ok) throw new Error(c.name);
       const d = await r.json();
       const OFFICE_RE = /(office.based|on.?site)/i;
       return (d.jobs || []).filter(j => {
         const loc = (j.location && j.location.name) || '';
         return (c.allRemote && !OFFICE_RE.test(loc)) || REMOTE_LOC_RE.test(loc);
-      }).map(j => ({
-        id: 'gh-' + c.board + '-' + j.id,
-        title: j.title,
-        company: c.name,
-        url: j.absolute_url,
-        location: (j.location && j.location.name) || 'See posting',
-        type: '',
-        date: j.updated_at,
-        source: c.name,
-        _text: { title: (j.title || '').toLowerCase(), tags: '', desc: '' }
-      }));
+      }).map(j => {
+        const plain = stripHtml(j.content || '');
+        return {
+          id: 'gh-' + c.board + '-' + j.id,
+          title: j.title,
+          company: c.name,
+          url: j.absolute_url,
+          location: (j.location && j.location.name) || 'See posting',
+          salaryText: extractSalary(plain),
+          type: '',
+          date: j.updated_at,
+          source: c.name,
+          _text: { title: (j.title || '').toLowerCase(), tags: '', desc: plain.toLowerCase().slice(0, 2000) }
+        };
+      });
     }
     const r = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${c.board}`);
     if (!r.ok) throw new Error(c.name);
@@ -980,6 +994,7 @@ async function fetchCompanyBoards() {
       location: j.isRemote && j.location && !REMOTE_LOC_RE.test(j.location)
         ? 'Remote · ' + j.location
         : (j.location || (j.isRemote ? 'Remote' : 'See posting')),
+      salaryText: extractSalary(j.descriptionPlain || j.compensationTierSummary || ''),
       type: j.employmentType || '',
       date: j.publishedAt,
       source: c.name,
@@ -1131,7 +1146,7 @@ function roleCardShell(role, bodyHtml) {
 }
 
 function applyFilters(list) {
-  return list.filter(j => (!filters.worldwide || j._worldwide) && (!filters.contract || j._contract));
+  return list.filter(j => (!filters.worldwide || j._worldwide) && (!filters.contract || j._contract) && (!filters.hideFreelancer || j.source !== 'Freelancer.com'));
 }
 
 function bucketBody(key, bucketList) {
@@ -1213,7 +1228,8 @@ function renderAll() {
     (!allQuery || (j.title + ' ' + j.company).toLowerCase().includes(allQuery)) &&
     (!allSource || j.source === allSource) &&
     (!filters.worldwide || j._worldwide) &&
-    (!filters.contract || j._contract)
+    (!filters.contract || j._contract) &&
+    (!filters.hideFreelancer || j.source !== 'Freelancer.com')
   );
   document.getElementById('allResultCount').textContent = list.length + ' listing' + (list.length === 1 ? '' : 's');
   document.getElementById('allList').innerHTML = list.length
