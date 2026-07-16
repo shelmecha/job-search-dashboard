@@ -330,6 +330,7 @@
     padding: 10px 28px; gap: 12px;
   }
   .brand { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 16.5px; letter-spacing: -0.01em; }
+  .topbar-actions { display: flex; gap: 10px; flex-wrap: wrap; }
   .topbar-btn {
     background: var(--card); color: var(--fg); border: 2px solid var(--fg); border-radius: 999px;
     font-family: inherit; font-weight: 700; font-size: 13.5px; padding: 8px 16px; cursor: pointer;
@@ -341,6 +342,7 @@
     background: var(--secondary); color: var(--fg); border: 1.5px solid var(--fg);
     border-radius: 999px; font-size: 11.5px; font-weight: 800; padding: 1px 8px; min-width: 24px; text-align: center;
   }
+  .pill-num.hidden-pill { background: var(--muted); }
 
   /* ============================================================
      BACK TO TOP
@@ -430,8 +432,11 @@
 <body>
 
 <nav class="topbar">
-  <span class="brand">🎯 Job Hunt HQ</span>
-  <button class="topbar-btn" onclick="goToApplied()">✓ Applied <span class="pill-num" id="appliedCount">0</span></button>
+  <span class="brand">🎯 Shelvi's Job Hunt</span>
+  <span class="topbar-actions">
+    <button class="topbar-btn" onclick="goToView('applied')">✓ Applied <span class="pill-num" id="appliedCount">0</span></button>
+    <button class="topbar-btn" onclick="goToView('hidden')">✗ Hidden <span class="pill-num hidden-pill" id="hiddenCount">0</span></button>
+  </span>
 </nav>
 
 <header class="top">
@@ -685,6 +690,7 @@ function updateAppliedCounts() {
   const n = Object.keys(appliedStore).length;
   const h = Object.keys(hiddenStore).length;
   document.getElementById('appliedCount').textContent = n;
+  document.getElementById('hiddenCount').textContent = h;
   document.getElementById('appliedTabCount').textContent = n ? `(${n})` : '';
   document.getElementById('hiddenTabCount').textContent = h ? `(${h})` : '';
 }
@@ -756,8 +762,8 @@ window.updateApplied = function(id, field, value) {
   if (appliedStore[id]) { appliedStore[id][field] = value.trim(); saveApplied(); }
 };
 
-window.goToApplied = function() {
-  setView('applied');
+window.goToView = function(v) {
+  setView(v);
   document.querySelector('.view-tabs').scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
