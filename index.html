@@ -1345,6 +1345,44 @@ window.addEventListener('scroll', () => {
   document.getElementById('backTop').classList.toggle('show', window.scrollY > 500);
 }, { passive: true });
 
+// Eased wheel scrolling — lerp the window toward a target position each frame
+// so mouse-wheel scrolling glides instead of stepping. Skipped on touch devices
+// (they have native momentum), on coarse pointers, and when the user prefers
+// reduced motion. Ctrl+wheel (zoom) and modifier scrolls are left to the browser.
+(function () {
+  const fine = window.matchMedia('(pointer: fine)').matches;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!fine || reduce) return;
+
+  let target = window.scrollY;
+  let current = window.scrollY;
+  let running = false;
+  const EASE = 0.12;      // lower = smoother/slower catch-up
+  const STEP = 1;         // wheel delta multiplier
+
+  function maxScroll() {
+    return document.documentElement.scrollHeight - window.innerHeight;
+  }
+  function frame() {
+    current += (target - current) * EASE;
+    if (Math.abs(target - current) < 0.5) { current = target; running = false; }
+    // 'instant' overrides the CSS scroll-behavior:smooth so our lerp is the
+    // only thing easing the motion (otherwise each frame re-animates → jank).
+    window.scrollTo({ top: current, behavior: 'instant' });
+    if (running) requestAnimationFrame(frame);
+  }
+  window.addEventListener('wheel', (e) => {
+    if (e.ctrlKey || e.metaKey || e.deltaMode !== 0) return; // zoom / line/page mode → native
+    e.preventDefault();
+    target = Math.max(0, Math.min(maxScroll(), target + e.deltaY * STEP));
+    if (!running) { running = true; requestAnimationFrame(frame); }
+  }, { passive: false });
+  // Keep target in sync when scroll position changes by other means (keyboard,
+  // back-to-top button, tab-switch auto-scroll, resize).
+  window.addEventListener('scroll', () => { if (!running) { target = current = window.scrollY; } }, { passive: true });
+  window.addEventListener('resize', () => { target = current = window.scrollY; });
+})();
+
 updateAppliedCounts();
 renderSkeleton();
 document.getElementById('statusLine').textContent = 'Running first search…';
