@@ -63,7 +63,7 @@
     position: relative;
     overflow: hidden;
   }
-  .top-inner { padding: 64px 28px 48px; max-width: 1180px; margin: 0 auto; position: relative; z-index: 1; }
+  .top-inner { padding: 64px 28px 60px; max-width: 1180px; margin: 0 auto; position: relative; z-index: 1; }
 
   /* decorative shape layer (aria-hidden, pointer-transparent) */
   .deco { position: absolute; pointer-events: none; z-index: 0; }
@@ -220,7 +220,7 @@
   .role-card:nth-child(8) { animation-delay: .35s; }
   .role-card:nth-child(9) { animation-delay: .4s; }
   @keyframes pop { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
-  .role-card:hover { transform: rotate(-0.6deg) scale(1.01); }
+  .role-card:hover { transform: translate(-3px, -3px); }
   .role-card.featured { box-shadow: 8px 8px 0px 0px var(--secondary); }
 
   .role-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
@@ -316,8 +316,87 @@
   }
   .show-more button:hover { background: var(--tertiary); transform: translate(-1px,-1px); box-shadow: 2px 2px 0px 0px var(--fg); }
 
-  footer { border-top: 2px dashed var(--fg); padding: 28px 0; margin-top: 28px; }
+  footer { border-top: 2px dashed var(--fg); padding: 32px 0; margin-top: 56px; }
   .footer-note { color: var(--muted-fg); font-size: 12.5px; max-width: 780px; font-weight: 500; }
+
+  /* ============================================================
+     TOPBAR
+  ============================================================ */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: var(--bg); border-bottom: 2px solid var(--fg);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 28px; gap: 12px;
+  }
+  .brand { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 16.5px; letter-spacing: -0.01em; }
+  .topbar-btn {
+    background: var(--card); color: var(--fg); border: 2px solid var(--fg); border-radius: 999px;
+    font-family: inherit; font-weight: 700; font-size: 13.5px; padding: 8px 16px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px; min-height: 42px;
+    transition: all .3s var(--bounce);
+  }
+  .topbar-btn:hover { background: var(--tertiary); transform: translate(-1px,-1px); box-shadow: 2px 2px 0px 0px var(--fg); }
+  .pill-num {
+    background: var(--secondary); color: var(--fg); border: 1.5px solid var(--fg);
+    border-radius: 999px; font-size: 11.5px; font-weight: 800; padding: 1px 8px; min-width: 24px; text-align: center;
+  }
+
+  /* ============================================================
+     BACK TO TOP
+  ============================================================ */
+  .back-top {
+    position: fixed; bottom: 26px; right: 26px; z-index: 60;
+    width: 54px; height: 54px; border-radius: 50%;
+    background: var(--accent); color: #fff; border: 2px solid var(--fg);
+    box-shadow: var(--shadow-pop); cursor: pointer;
+    font-size: 22px; font-weight: 800; font-family: 'Outfit', sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transform: translateY(16px) scale(0.8); pointer-events: none;
+    transition: all .3s var(--bounce);
+  }
+  .back-top.show { opacity: 1; transform: none; pointer-events: auto; }
+  .back-top:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0px 0px var(--fg); }
+
+  /* ============================================================
+     APPLIED TRACKER
+  ============================================================ */
+  .job-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+  .apply-btn {
+    width: 26px; height: 26px; border-radius: 50%; flex: none;
+    border: 2px solid var(--fg); background: var(--card); color: var(--fg);
+    font-size: 13px; font-weight: 800; line-height: 1; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all .3s var(--bounce);
+  }
+  .apply-btn:hover { background: var(--tertiary); transform: scale(1.12); }
+  .apply-btn.on { background: var(--quaternary); box-shadow: 2px 2px 0px 0px var(--fg); }
+  .job.is-applied { background: #F0FDF9; border-color: var(--quaternary); }
+  .flag-badge.applied-badge { background: var(--quaternary); }
+
+  .applied-list { display: flex; flex-direction: column; gap: 18px; }
+  .applied-card {
+    background: var(--card); border: 2px solid var(--fg); border-radius: var(--r-md);
+    padding: 20px 22px; box-shadow: 4px 4px 0px 0px var(--quaternary);
+  }
+  .applied-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+  .applied-title { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 16px; }
+  .applied-title:hover { color: var(--accent); }
+  .applied-meta { font-size: 12.5px; color: var(--muted-fg); font-weight: 600; margin-top: 2px; }
+  .unapply {
+    background: transparent; border: 2px solid var(--border); border-radius: 999px;
+    color: var(--muted-fg); font-family: inherit; font-weight: 700; font-size: 12px;
+    padding: 5px 12px; cursor: pointer; flex: none; transition: all .2s ease;
+  }
+  .unapply:hover { border-color: #DC2626; color: #DC2626; }
+  .applied-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .applied-fields label {
+    display: flex; flex-direction: column; gap: 5px;
+    font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-fg);
+  }
+  .applied-fields label.wide { grid-column: 1 / -1; }
+  @media (max-width: 640px) { .applied-fields { grid-template-columns: 1fr; } }
+  .search-input.mini { min-height: 42px; padding: 9px 13px; font-size: 13.5px; max-width: none; font-weight: 500; }
+  .applied-links { display: flex; gap: 9px; margin-top: 14px; flex-wrap: wrap; }
 
   /* ============================================================
      FOCUS, MOTION, MOBILE
@@ -340,6 +419,11 @@
 </style>
 </head>
 <body>
+
+<nav class="topbar">
+  <span class="brand">🎯 Job Hunt HQ</span>
+  <button class="topbar-btn" onclick="goToApplied()">✓ Applied <span class="pill-num" id="appliedCount">0</span></button>
+</nav>
 
 <header class="top">
   <div class="deco deco-circle" aria-hidden="true"></div>
@@ -376,6 +460,7 @@
   <div class="view-tabs">
     <button class="vtab on" id="vtab-matched" onclick="setView('matched')">Matched to my roles</button>
     <button class="vtab" id="vtab-all" onclick="setView('all')">Browse everything <span id="allCount"></span></button>
+    <button class="vtab" id="vtab-applied" onclick="setView('applied')">✓ Applied <span id="appliedTabCount"></span></button>
   </div>
   <div class="role-grid" id="roleGrid"></div>
   <div id="allSection" style="display:none;">
@@ -389,7 +474,13 @@
     <div id="allList" class="match-list" style="padding-left:0;"></div>
     <div class="show-more" style="padding-left:0; margin-top:14px;" id="allMore"></div>
   </div>
+  <div id="appliedSection" style="display:none;">
+    <p class="status-line" id="appliedSummary" style="display:block; margin-bottom:18px;"></p>
+    <div id="appliedList" class="applied-list"></div>
+  </div>
 </main>
+
+<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">↑</button>
 
 <footer class="wrap">
   <p class="footer-note">
@@ -556,6 +647,84 @@ const MAX_SHOWN = 6;
 
 let expandedState = {};
 let filters = { worldwide: false, contract: false };
+
+// Applied tracker — persisted in this browser's localStorage only (no server).
+let appliedStore = {};
+try { appliedStore = JSON.parse(localStorage.getItem('jsd-applied') || '{}'); } catch (e) { appliedStore = {}; }
+
+function saveApplied() {
+  localStorage.setItem('jsd-applied', JSON.stringify(appliedStore));
+  updateAppliedCounts();
+}
+
+function updateAppliedCounts() {
+  const n = Object.keys(appliedStore).length;
+  document.getElementById('appliedCount').textContent = n;
+  document.getElementById('appliedTabCount').textContent = n ? `(${n})` : '';
+}
+
+function rerenderCurrent() {
+  if (view === 'applied') renderApplied();
+  else if (view === 'all') renderAll();
+  else if (window._lastBuckets) renderResults(window._lastBuckets);
+}
+
+window.toggleApplied = function(id, ev) {
+  if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+  if (appliedStore[id]) {
+    delete appliedStore[id];
+  } else {
+    const j = (window._allJobs || []).find(x => x.id === id);
+    appliedStore[id] = {
+      id,
+      title: j ? j.title : '(unknown role)',
+      company: j ? (j.company || '') : '',
+      source: j ? j.source : '',
+      url: j ? j.url : '',
+      location: j ? j.location : '',
+      appliedAt: new Date().toISOString(),
+      resumeUrl: '', coverUrl: '', notes: ''
+    };
+  }
+  saveApplied();
+  rerenderCurrent();
+};
+
+window.updateApplied = function(id, field, value) {
+  if (appliedStore[id]) { appliedStore[id][field] = value.trim(); saveApplied(); }
+};
+
+window.goToApplied = function() {
+  setView('applied');
+  document.querySelector('.view-tabs').scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+function renderApplied() {
+  const list = Object.values(appliedStore).sort((a, b) => new Date(b.appliedAt) - new Date(a.appliedAt));
+  document.getElementById('appliedSummary').textContent = list.length
+    ? `${list.length} application${list.length === 1 ? '' : 's'} tracked. Saved in this browser only — paste Drive/Docs links to keep the exact resume and cover letter you sent with each one.`
+    : '';
+  document.getElementById('appliedList').innerHTML = list.length ? list.map(a => `
+    <div class="applied-card">
+      <div class="applied-head">
+        <div>
+          <a class="applied-title" href="${escapeHtml(a.url)}" target="_blank" rel="noopener">${escapeHtml(a.title)} ↗</a>
+          <div class="applied-meta">${escapeHtml([a.company, a.source, a.location].filter(Boolean).join(' · '))} — applied ${new Date(a.appliedAt).toLocaleDateString()}</div>
+        </div>
+        <button class="unapply" onclick="toggleApplied('${a.id}')">Remove</button>
+      </div>
+      <div class="applied-fields">
+        <label>Resume sent<input class="search-input mini" type="url" placeholder="Paste Drive/Docs link to the resume you used" value="${escapeHtml(a.resumeUrl || '')}" onchange="updateApplied('${a.id}','resumeUrl',this.value)"></label>
+        <label>Cover letter sent<input class="search-input mini" type="url" placeholder="Paste link to the cover letter you used" value="${escapeHtml(a.coverUrl || '')}" onchange="updateApplied('${a.id}','coverUrl',this.value)"></label>
+        <label class="wide">Notes<input class="search-input mini" type="text" placeholder="Stage, contact person, follow-up date…" value="${escapeHtml(a.notes || '')}" onchange="updateApplied('${a.id}','notes',this.value)"></label>
+      </div>
+      ${(a.resumeUrl || a.coverUrl) ? `<div class="applied-links">
+        ${a.resumeUrl ? `<a class="ext-link" href="${escapeHtml(a.resumeUrl)}" target="_blank" rel="noopener">📄 Resume ↗</a>` : ''}
+        ${a.coverUrl ? `<a class="ext-link" href="${escapeHtml(a.coverUrl)}" target="_blank" rel="noopener">✉️ Cover letter ↗</a>` : ''}
+      </div>` : ''}
+    </div>`).join('')
+  : '<div class="empty-state" style="padding-left:0;">Nothing marked as applied yet. Hit the ✓ circle on any job row when you send an application — it lands here with room for your resume and cover-letter links.</div>';
+}
 
 function stripHtml(html) {
   const div = document.createElement('div');
@@ -845,11 +1014,15 @@ function externalLinks(role) {
 }
 
 function jobRow(job) {
+  const applied = !!appliedStore[job.id];
   const meta = [job.company, job.location, timeAgo(job.date), formatSalary(job)].filter(Boolean);
-  return `<a class="job" href="${job.url}" target="_blank" rel="noopener">
+  return `<a class="job${applied ? ' is-applied' : ''}" href="${job.url}" target="_blank" rel="noopener">
     <div class="job-top">
-      <span class="job-title">${escapeHtml(job.title)}${job._ai ? '<span class="ai-badge">🤖 AI tooling</span>' : ''}${job._worldwide ? '<span class="flag-badge ww">🌍 Worldwide</span>' : ''}${job._contract ? '<span class="flag-badge ct">Contract</span>' : ''}</span>
-      <span class="job-src">${job.source}</span>
+      <span class="job-title">${escapeHtml(job.title)}${job._ai ? '<span class="ai-badge">🤖 AI tooling</span>' : ''}${job._worldwide ? '<span class="flag-badge ww">🌍 Worldwide</span>' : ''}${job._contract ? '<span class="flag-badge ct">Contract</span>' : ''}${applied ? '<span class="flag-badge applied-badge">✓ Applied</span>' : ''}</span>
+      <span class="job-actions">
+        <span class="job-src">${job.source}</span>
+        <span class="apply-btn${applied ? ' on' : ''}" role="button" tabindex="0" title="${applied ? 'Applied — click to unmark' : 'Mark as applied'}" aria-label="${applied ? 'Unmark applied' : 'Mark as applied'}" onclick="toggleApplied('${job.id}', event)" onkeydown="if(event.key==='Enter'||event.key===' ')toggleApplied('${job.id}', event)">✓</span>
+      </span>
     </div>
     <div class="job-meta">${meta.map(m => `<span>${escapeHtml(String(m))}</span>`).join('')}</div>
   </a>`;
@@ -949,9 +1122,12 @@ window.setView = function(v) {
   allShown = 60;
   document.getElementById('vtab-matched').classList.toggle('on', v === 'matched');
   document.getElementById('vtab-all').classList.toggle('on', v === 'all');
+  document.getElementById('vtab-applied').classList.toggle('on', v === 'applied');
   document.getElementById('roleGrid').style.display = v === 'matched' ? 'grid' : 'none';
   document.getElementById('allSection').style.display = v === 'all' ? 'block' : 'none';
+  document.getElementById('appliedSection').style.display = v === 'applied' ? 'block' : 'none';
   if (v === 'all') renderAll();
+  if (v === 'applied') renderApplied();
 };
 
 window.onAllSearch = function(q) { allQuery = q.toLowerCase().trim(); allShown = 60; renderAll(); };
@@ -1048,6 +1224,11 @@ async function runSearch() {
   label.textContent = 'Refresh Matches';
 }
 
+window.addEventListener('scroll', () => {
+  document.getElementById('backTop').classList.toggle('show', window.scrollY > 500);
+}, { passive: true });
+
+updateAppliedCounts();
 renderSkeleton();
 document.getElementById('statusLine').textContent = 'Running first search…';
 runSearch();
