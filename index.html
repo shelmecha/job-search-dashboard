@@ -286,13 +286,8 @@
   }
   .dock-all:hover { background: var(--accent); color: #fff; transform: translate(-2px,-2px); }
 
-  /* Fly-out when a card is hidden: sails toward the left dock, shrinks, fades. */
-  .role-card--closing {
-    animation: none !important;
-    transition: transform .4s var(--bounce), opacity .3s ease, box-shadow .3s ease !important;
-    transform: translateX(-160px) scale(.62) rotate(-5deg) !important;
-    opacity: 0 !important; box-shadow: none !important; pointer-events: none;
-  }
+  /* Card-hide flight is driven inline from closeRole() so it can aim at the
+     dock's actual position; no static keyframes needed here. */
   .role-card-minimal .role-head { padding-right: 30px; }
   .role-card:nth-child(2) { animation-delay: .05s; }
   .role-card:nth-child(3) { animation-delay: .1s; }
@@ -580,10 +575,10 @@
     ]
   };
   const POM = {
-    legend: { O: '#e8912e', C: '#f7dca8', P: '#241a12', N: '#241a12' },
+    legend: { O: '#1c1a18', C: '#413c37', P: '#f0e6d2', N: '#000000' },
     rows: [
       '..O........O..', '..OO......OO..', '..OOOOOOOOOO..', '..OOOOOOOOOO..',
-      '..OOPOOOOPOO..', '..OOOOOOOOOO..', '..OOOONNOOOO..', '..OOCCCCCCOO..',
+      '..OOPOOOOPOO..', '..OOOOOOOOOO..', '..OOOCNNCOOO..', '..OOCCCCCCOO..',
       '..OCCCCCCCCO..', '..OCCCCCCCCO..', '..OCCCCCCCCO..', '..OOCCCCCCOO..',
       '..OO.OOOO.OO..', '..OO......OO..'
     ]
@@ -892,19 +887,45 @@ window.toggleHidden = function(id, ev) {
   if (ev) { ev.preventDefault(); ev.stopPropagation(); }
   if (hiddenStore[id]) {
     delete hiddenStore[id];
-  } else {
-    const j = (window._allJobs || []).find(x => x.id === id);
-    hiddenStore[id] = {
-      id,
-      title: j ? j.title : '(unknown role)',
-      company: j ? (j.company || '') : '',
-      source: j ? j.source : '',
-      url: j ? j.url : '',
-      hiddenAt: new Date().toISOString()
-    };
+    saveHidden();
+    rerenderCurrent();
+    return;
   }
+  const j = (window._allJobs || []).find(x => x.id === id);
+  hiddenStore[id] = {
+    id,
+    title: j ? j.title : '(unknown role)',
+    company: j ? (j.company || '') : '',
+    source: j ? j.source : '',
+    url: j ? j.url : '',
+    hiddenAt: new Date().toISOString()
+  };
   saveHidden();
-  rerenderCurrent();
+
+  // Fly the row off to the left (same direction as the role-card dock) instead
+  // of blinking out, then collapse its slot so neighbours glide up.
+  const row = ev && ev.target ? ev.target.closest('.job') : null;
+  if (!row || REDUCE_MOTION) { rerenderCurrent(); return; }
+  const imp = (prop, val) => row.style.setProperty(prop, val, 'important');
+  const r = row.getBoundingClientRect();
+  imp('pointer-events', 'none');
+  imp('position', 'relative');
+  imp('z-index', '80');
+  imp('transition', 'transform .5s cubic-bezier(.5,-.15,.75,.3), opacity .45s ease');
+  requestAnimationFrame(() => {
+    imp('transform', `translateX(${-(r.left + r.width) - 40}px) scale(.7) rotate(-4deg)`);
+    imp('opacity', '0');
+  });
+  setTimeout(() => {
+    imp('overflow', 'hidden');
+    imp('height', r.height + 'px');
+    imp('box-sizing', 'border-box');
+    requestAnimationFrame(() => {
+      imp('transition', 'height .28s ease, margin .28s ease, padding .28s ease, border-width .28s ease');
+      imp('height', '0px'); imp('margin', '0'); imp('padding', '0'); imp('border-width', '0');
+    });
+    setTimeout(rerenderCurrent, 300);
+  }, 480);
 };
 
 function renderHidden() {
@@ -1439,17 +1460,46 @@ const collapsedRoles = new Set();
 const REDUCE_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 window.closeRole = function(roleId) {
   const card = document.querySelector(`.role-card[data-role="${roleId}"]`);
-  // Targeted update: remove just this card + refresh the dock. Avoids rebuilding
-  // the whole strip's innerHTML (which was the source of the hide lag).
-  const commit = () => {
-    collapsedRoles.add(roleId);
-    if (card && card.parentNode) card.parentNode.removeChild(card);
-    renderHiddenDock(hiddenItemsList());
-  };
-  if (card && !REDUCE_MOTION) {
-    card.classList.add('role-card--closing');   // fly toward the left dock
-    setTimeout(commit, 360);
-  } else { commit(); }
+  // Register + show the dock badge right away, so the card visibly lands on it.
+  collapsedRoles.add(roleId);
+  renderHiddenDock(hiddenItemsList());
+  if (!card) return;
+  const remove = () => { if (card.parentNode) card.parentNode.removeChild(card); };
+
+  // Inline !important so the flight survives the reduced-motion global override
+  // and the entrance animation's fill mode.
+  const imp = (prop, val) => card.style.setProperty(prop, val, 'important');
+  const r = card.getBoundingClientRect();
+  const dx = -(r.left + r.width) + 70;                                // just past the left edge (the dock)
+  const dy = (window.innerHeight / 2) - (r.top + r.height / 2);       // dock sits at mid-height
+  imp('animation', 'none');
+  imp('pointer-events', 'none');
+  imp('z-index', '80');
+  imp('transition', 'transform .65s cubic-bezier(.5,-.15,.75,.3), opacity .6s ease');
+  requestAnimationFrame(() => {
+    imp('transform', `translate(${dx}px, ${dy}px) scale(.12) rotate(-9deg)`);
+    imp('opacity', '0');
+  });
+
+  // Phase 2: collapse the empty slot so the neighbouring cards glide over
+  // instead of snapping, then remove the node for good.
+  setTimeout(() => {
+    imp('overflow', 'hidden');
+    imp('min-width', '0');
+    if (card.parentElement && card.parentElement.id === 'roleGrid') {
+      imp('transition', 'flex-basis .32s ease, margin-left .32s ease');
+      imp('flex-basis', '0px');
+      imp('margin-left', '-32px');       // absorb the flex gap too
+    } else {
+      // "Other ops" card lives in normal flow — collapse its height instead.
+      imp('height', r.height + 'px');
+      requestAnimationFrame(() => {
+        imp('transition', 'height .32s ease, margin-top .32s ease, padding .32s ease');
+        imp('height', '0px'); imp('margin-top', '0'); imp('padding', '0'); imp('border-width', '0');
+      });
+    }
+    setTimeout(remove, 340);
+  }, 640);
 };
 window.openRole = function(roleId) {
   collapsedRoles.delete(roleId);
