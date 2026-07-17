@@ -1466,18 +1466,15 @@ window.closeRole = function(roleId) {
   if (!card) return;
   const remove = () => { if (card.parentNode) card.parentNode.removeChild(card); };
 
-  // Inline !important so the flight survives the reduced-motion global override
+  // Inline !important so the slide survives the reduced-motion global override
   // and the entrance animation's fill mode.
   const imp = (prop, val) => card.style.setProperty(prop, val, 'important');
   const r = card.getBoundingClientRect();
-  const dx = -(r.left + r.width) + 70;                                // just past the left edge (the dock)
-  const dy = (window.innerHeight / 2) - (r.top + r.height / 2);       // dock sits at mid-height
   imp('animation', 'none');
   imp('pointer-events', 'none');
-  imp('z-index', '80');
-  imp('transition', 'transform .65s cubic-bezier(.5,-.15,.75,.3), opacity .6s ease');
+  imp('transition', 'transform .4s ease-in, opacity .38s ease');
   requestAnimationFrame(() => {
-    imp('transform', `translate(${dx}px, ${dy}px) scale(.12) rotate(-9deg)`);
+    imp('transform', `translateX(${-(r.left + r.width)}px)`);   // simple slide off the left edge
     imp('opacity', '0');
   });
 
@@ -1499,7 +1496,7 @@ window.closeRole = function(roleId) {
       });
     }
     setTimeout(remove, 340);
-  }, 640);
+  }, 400);
 };
 window.openRole = function(roleId) {
   collapsedRoles.delete(roleId);
