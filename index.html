@@ -250,28 +250,33 @@
     transition: transform .32s var(--bounce);
   }
   .hidden-dock:hover .dock-slide, .hidden-dock:focus-within .dock-slide { transform: translateX(-4px); }
-  .dock-cards { display: flex; flex-direction: column; gap: 10px; padding: 6px 6px 6px 0; }
-  .dock-badge {
-    width: 46px; height: 46px; border-radius: var(--r-sm); cursor: pointer;
+  .dock-cards {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 6px 6px 6px 0;
+    max-height: calc(100vh - 32px); overflow-y: auto; overflow-x: hidden;
+    scrollbar-width: thin;
+  }
+  .dock-badge, .dock-all {
+    width: 46px; height: 46px; flex: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 15px;
+    font-family: 'Outfit', sans-serif; font-weight: 800;
+    border-radius: var(--r-sm);
+  }
+  .dock-badge {
+    font-size: 15px;
     border: 2px solid var(--fg); box-shadow: 2px 2px 0 0 var(--fg);
     transition: transform .2s var(--bounce), box-shadow .2s var(--bounce);
-    animation: pop .28s var(--bounce) both;
   }
   .dock-badge:hover { transform: translate(2px,-2px); box-shadow: 4px 4px 0 0 var(--fg); }
   .dock-all {
-    width: 46px; padding: 8px 4px; cursor: pointer;
-    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 11px; line-height: 1.15;
+    font-size: 11px; line-height: 1.15;
     text-transform: uppercase; letter-spacing: .02em; text-align: center;
     background: var(--card); color: var(--fg);
-    border: 2px dashed var(--fg); border-radius: var(--r-sm);
+    border: 2px dashed var(--fg);
     transition: transform .2s var(--bounce), background .2s ease, color .2s ease;
   }
   .dock-all:hover { background: var(--accent); color: #fff; transform: translate(2px,-2px); }
 
-  /* Card-hide flight is driven inline from closeRole() so it can aim at the
-     dock's actual position; no static keyframes needed here. */
   .role-card-minimal .role-head { padding-right: 30px; }
   .role-card:nth-child(2) { animation-delay: .05s; }
   .role-card:nth-child(3) { animation-delay: .1s; }
@@ -1441,44 +1446,11 @@ window.toggleExpand = function(roleId) {
 const collapsedRoles = new Set();
 const REDUCE_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 window.closeRole = function(roleId) {
-  const card = document.querySelector(`.role-card[data-role="${roleId}"]`);
-  // Register + show the dock badge right away, so the card visibly lands on it.
+  // No exit animation: register the badge and drop the card immediately.
   collapsedRoles.add(roleId);
   renderHiddenDock(hiddenItemsList());
-  if (!card) return;
-  const remove = () => { if (card.parentNode) card.parentNode.removeChild(card); };
-
-  // Inline !important so the slide survives the reduced-motion global override
-  // and the entrance animation's fill mode.
-  const imp = (prop, val) => card.style.setProperty(prop, val, 'important');
-  const r = card.getBoundingClientRect();
-  imp('animation', 'none');
-  imp('pointer-events', 'none');
-  imp('transition', 'transform .4s ease-in, opacity .38s ease');
-  requestAnimationFrame(() => {
-    imp('transform', `translateX(${-(r.left + r.width)}px)`);   // simple slide off the left edge
-    imp('opacity', '0');
-  });
-
-  // Phase 2: collapse the empty slot so the neighbouring cards glide over
-  // instead of snapping, then remove the node for good.
-  setTimeout(() => {
-    imp('overflow', 'hidden');
-    imp('min-width', '0');
-    if (card.parentElement && card.parentElement.id === 'roleGrid') {
-      imp('transition', 'flex-basis .32s ease, margin-left .32s ease');
-      imp('flex-basis', '0px');
-      imp('margin-left', '-32px');       // absorb the flex gap too
-    } else {
-      // "Other ops" card lives in normal flow — collapse its height instead.
-      imp('height', r.height + 'px');
-      requestAnimationFrame(() => {
-        imp('transition', 'height .32s ease, margin-top .32s ease, padding .32s ease');
-        imp('height', '0px'); imp('margin-top', '0'); imp('padding', '0'); imp('border-width', '0');
-      });
-    }
-    setTimeout(remove, 340);
-  }, 400);
+  const card = document.querySelector(`.role-card[data-role="${roleId}"]`);
+  if (card && card.parentNode) card.parentNode.removeChild(card);
 };
 window.openRole = function(roleId) {
   collapsedRoles.delete(roleId);
@@ -1580,9 +1552,19 @@ async function runSearch() {
 
   jobs = jobs.map(j => {
     const f = jobFlags(j);
-    return { ...j, _ai: aiTooling(j._text).hit, _contract: f.contract, _worldwide: f.worldwide };
+    const { bonus, hit } = aiTooling(j._text);
+    const flagBonus = (f.contract ? 2 : 0) + (f.worldwide ? 1.5 : 0);
+    let best = 0;
+    for (const role of ROLES) {
+      const s = scoreJobForRole(j._text, role);
+      if (s > best) best = s;
+    }
+    return { ...j, _ai: hit, _contract: f.contract, _worldwide: f.worldwide, _score: best + bonus + flagBonus };
   });
-  window._allJobs = jobs.slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+  // Relevance first, then latest → oldest (same rule the role buckets use).
+  window._allJobs = jobs.slice().sort((a, b) =>
+    (b._score - a._score) || (new Date(b.date || 0) - new Date(a.date || 0))
+  );
   document.getElementById('allCount').textContent = `(${jobs.length})`;
   const srcSel = document.getElementById('allSource');
   const prevSrc = srcSel.value;
