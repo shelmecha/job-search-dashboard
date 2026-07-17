@@ -242,49 +242,38 @@
   }
   .role-close:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 0 var(--fg); background: var(--secondary); color: #fff; }
 
-  /* Left-edge dock for hidden roles: peeks a sliver, slides out on hover. */
+  /* Left-edge dock: each hidden card is a square tab in its own accent color,
+     tucked so a colored sliver peeks. Hovering pops the stack out a little. */
   .hidden-dock { position: fixed; left: 0; top: 50%; transform: translateY(-50%); z-index: 60; }
   .dock-slide {
-    display: flex; align-items: stretch;
-    transform: translateX(calc(-100% + 24px));
-    transition: transform .38s var(--bounce);
+    transform: translateX(calc(-100% + 18px));
+    transition: transform .32s var(--bounce);
   }
-  .hidden-dock:hover .dock-slide, .hidden-dock:focus-within .dock-slide { transform: translateX(0); }
-  .dock-cards {
-    display: flex; flex-direction: column; gap: 10px;
-    padding: 16px 14px; background: var(--card);
-    border: 2px solid var(--fg); border-left: none;
-    border-radius: 0 var(--r-md) var(--r-md) 0;
-    box-shadow: 4px 4px 0 0 var(--border);
-  }
+  .hidden-dock:hover .dock-slide, .hidden-dock:focus-within .dock-slide { transform: translateX(-4px); }
+  .dock-cards { display: flex; flex-direction: column; gap: 10px; padding: 6px 6px 6px 0; }
   .dock-badge {
-    width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    width: 46px; height: 46px; border-radius: var(--r-sm); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 15px;
     border: 2px solid var(--fg); box-shadow: 2px 2px 0 0 var(--fg);
     transition: transform .2s var(--bounce), box-shadow .2s var(--bounce);
+    animation: pop .28s var(--bounce) both;
   }
-  .dock-badge:hover { transform: translate(-2px,-2px); box-shadow: 4px 4px 0 0 var(--fg); }
-  .dock-handle {
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-    width: 24px; background: var(--accent); color: #fff;
-    border: 2px solid var(--fg); border-left: none;
-    border-radius: 0 var(--r-sm) var(--r-sm) 0;
-    box-shadow: 2px 2px 0 0 var(--fg); cursor: pointer;
+  .dock-badge:hover { transform: translate(2px,-2px); box-shadow: 4px 4px 0 0 var(--fg); }
+  .dock-countsq {
+    background: var(--fg); color: #fff; cursor: default;
+    font-size: 14px;
   }
-  .dock-count { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 13px; }
-  .dock-arrow { font-size: 15px; font-weight: 800; line-height: 1; transition: transform .38s var(--bounce); }
-  .hidden-dock:hover .dock-arrow { transform: rotate(180deg); }
-  .dock-badge { animation: pop .28s var(--bounce) both; }
+  .dock-countsq:hover { transform: none; box-shadow: 2px 2px 0 0 var(--fg); }
   .dock-all {
-    margin-top: 4px; width: 44px; padding: 8px 4px; cursor: pointer;
+    width: 46px; padding: 8px 4px; cursor: pointer;
     font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 11px; line-height: 1.15;
     text-transform: uppercase; letter-spacing: .02em; text-align: center;
-    background: var(--muted); color: var(--fg);
+    background: var(--card); color: var(--fg);
     border: 2px dashed var(--fg); border-radius: var(--r-sm);
     transition: transform .2s var(--bounce), background .2s ease, color .2s ease;
   }
-  .dock-all:hover { background: var(--accent); color: #fff; transform: translate(-2px,-2px); }
+  .dock-all:hover { background: var(--accent); color: #fff; transform: translate(2px,-2px); }
 
   /* Card-hide flight is driven inline from closeRole() so it can aim at the
      dock's actual position; no static keyframes needed here. */
@@ -656,7 +645,6 @@
   <div class="hidden-dock" id="hiddenDock" style="display:none;" aria-label="Hidden roles">
     <div class="dock-slide">
       <div class="dock-cards" id="dockCards"></div>
-      <div class="dock-handle"><span class="dock-count" id="dockCount">0</span><span class="dock-arrow">›</span></div>
     </div>
   </div>
   <div id="allSection" style="display:none;">
@@ -1432,7 +1420,7 @@ function renderHiddenDock(items) {
   const dock = document.getElementById('hiddenDock');
   if (!items.length || view !== 'matched') { dock.style.display = 'none'; return; }
   dock.style.display = 'block';
-  document.getElementById('dockCount').textContent = items.length;
+  const countSq = `<div class="dock-badge dock-countsq" title="${items.length} hidden card${items.length === 1 ? '' : 's'}">${items.length}</div>`;
   const badges = items.map(r => {
     const label = typeof r.rank === 'number' ? '#' + r.rank : r.rank;
     return `<button class="dock-badge" onclick="openRole('${r.id}')" title="Reopen: ${escapeHtml(r.title)}" style="background:${r.accent}; color:${r.accent === '#8B5CF6' ? '#fff' : '#1E293B'};">${label}</button>`;
@@ -1440,7 +1428,7 @@ function renderHiddenDock(items) {
   const showAll = items.length > 1
     ? `<button class="dock-all" onclick="openAllRoles()" title="Show all hidden cards">↺ all</button>`
     : '';
-  document.getElementById('dockCards').innerHTML = badges + showAll;
+  document.getElementById('dockCards').innerHTML = countSq + badges + showAll;
 }
 
 // Which roles/sections are currently hidden (drives the dock without a full re-render).
