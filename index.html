@@ -215,8 +215,11 @@
     padding: 6px 28px 26px; scroll-padding-left: 28px;
     scroll-snap-type: x proximity; scroll-behavior: smooth;
   }
-  .role-strip > .role-card { flex: 0 0 min(600px, 90vw); scroll-snap-align: start; }
-  .role-strip > .role-card-minimal { flex: 0 0 320px; align-self: flex-start; }
+  /* Uniform card height so the boxes line up; long job lists scroll inside. */
+  .role-strip > .role-card { flex: 0 0 min(600px, 90vw); scroll-snap-align: start; height: min(72vh, 680px); }
+  .role-strip > .role-card > [id^="body-"] { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .role-strip > .role-card .match-list { flex: 1; min-height: 0; overflow-y: auto; padding-right: 6px; }
+  .role-strip > .role-card-minimal { flex: 0 0 320px; align-self: flex-start; height: auto; }
   .general-wrap { margin-top: 40px; }
   @media (max-width: 860px) {
     .role-strip > .role-card { flex-basis: 88vw; }
@@ -899,10 +902,9 @@ window.toggleHidden = function(id, ev) {
   imp('pointer-events', 'none');
   imp('position', 'relative');
   imp('z-index', '80');
-  imp('transition', 'transform .5s cubic-bezier(.5,-.15,.75,.3), opacity .45s ease');
+  imp('transition', 'transform .4s ease-in');
   requestAnimationFrame(() => {
-    imp('transform', `translateX(${-(r.left + r.width) - 40}px) scale(.7) rotate(-4deg)`);
-    imp('opacity', '0');
+    imp('transform', `translateX(${-(r.left + r.width)}px)`);
   });
   setTimeout(() => {
     imp('overflow', 'hidden');
@@ -1274,8 +1276,9 @@ function classify(jobs) {
       buckets.general.push(tagged);
     }
   }
+  // Relevance first, then latest → oldest (missing dates sort last, not NaN).
   Object.values(buckets).forEach(list =>
-    list.sort((a, b) => b._score - a._score || new Date(b.date) - new Date(a.date))
+    list.sort((a, b) => b._score - a._score || (new Date(b.date || 0) - new Date(a.date || 0)))
   );
   return buckets;
 }
