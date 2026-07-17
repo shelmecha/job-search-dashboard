@@ -260,11 +260,6 @@
     animation: pop .28s var(--bounce) both;
   }
   .dock-badge:hover { transform: translate(2px,-2px); box-shadow: 4px 4px 0 0 var(--fg); }
-  .dock-countsq {
-    background: var(--fg); color: #fff; cursor: default;
-    font-size: 14px;
-  }
-  .dock-countsq:hover { transform: none; box-shadow: 2px 2px 0 0 var(--fg); }
   .dock-all {
     width: 46px; padding: 8px 4px; cursor: pointer;
     font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 11px; line-height: 1.15;
@@ -1420,7 +1415,6 @@ function renderHiddenDock(items) {
   const dock = document.getElementById('hiddenDock');
   if (!items.length || view !== 'matched') { dock.style.display = 'none'; return; }
   dock.style.display = 'block';
-  const countSq = `<div class="dock-badge dock-countsq" title="${items.length} hidden card${items.length === 1 ? '' : 's'}">${items.length}</div>`;
   const badges = items.map(r => {
     const label = typeof r.rank === 'number' ? '#' + r.rank : r.rank;
     return `<button class="dock-badge" onclick="openRole('${r.id}')" title="Reopen: ${escapeHtml(r.title)}" style="background:${r.accent}; color:${r.accent === '#8B5CF6' ? '#fff' : '#1E293B'};">${label}</button>`;
@@ -1428,7 +1422,7 @@ function renderHiddenDock(items) {
   const showAll = items.length > 1
     ? `<button class="dock-all" onclick="openAllRoles()" title="Show all hidden cards">↺ all</button>`
     : '';
-  document.getElementById('dockCards').innerHTML = countSq + badges + showAll;
+  document.getElementById('dockCards').innerHTML = badges + showAll;
 }
 
 // Which roles/sections are currently hidden (drives the dock without a full re-render).
