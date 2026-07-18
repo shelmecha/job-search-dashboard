@@ -215,14 +215,19 @@
     padding: 6px 28px 26px; scroll-padding-left: 28px;
     scroll-snap-type: x proximity; scroll-behavior: smooth;
   }
-  /* Uniform card height so the boxes line up; long job lists scroll inside. */
-  .role-strip > .role-card { flex: 0 0 min(600px, 90vw); scroll-snap-align: start; height: min(72vh, 680px); }
+  /* Uniform card height so the boxes line up; long job lists scroll inside.
+     clamp() keeps a floor on short windows — otherwise the wrapped header/chips
+     eat the whole card and push the list out of its border. */
+  .role-strip > .role-card { flex: 0 0 min(600px, 90vw); scroll-snap-align: start; height: clamp(640px, 74vh, 700px); }
   .role-strip > .role-card > [id^="body-"] { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .role-strip > .role-card .match-list { flex: 1; min-height: 0; overflow-y: auto; padding-right: 6px; }
+  .role-strip > .role-card .match-list { flex: 1; min-height: 140px; overflow-y: auto; padding-right: 6px; }
   .role-strip > .role-card-minimal { flex: 0 0 320px; align-self: flex-start; height: auto; }
   .general-wrap { margin-top: 40px; }
   @media (max-width: 860px) {
-    .role-strip > .role-card { flex-basis: 88vw; }
+    /* Narrow screens: headers wrap taller, so fixed heights overflow — let the
+       card size to its content and cap the list instead. */
+    .role-strip > .role-card { flex-basis: 88vw; height: auto; }
+    .role-strip > .role-card .match-list { flex: none; max-height: 300px; min-height: 0; }
     .role-strip > .role-card-minimal { flex-basis: 72vw; }
   }
 
