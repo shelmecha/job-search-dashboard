@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='24' width='52' height='32' rx='7' fill='%238B5CF6' stroke='%231E293B' stroke-width='4'/%3E%3Cpath d='M22 24v-6a6 6 0 0 1 6-6h8a6 6 0 0 1 6 6v6' fill='none' stroke='%231E293B' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cline x1='6' y1='38' x2='58' y2='38' stroke='%231E293B' stroke-width='4'/%3E%3Crect x='27' y='34' width='10' height='8' rx='2' fill='%23FBBF24' stroke='%231E293B' stroke-width='3'/%3E%3C/svg%3E">
-<title>Job Search Dashboard — Shelvi</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='10' width='12' height='16' fill='%234A3B34'/%3E%3Crect x='46' y='10' width='12' height='16' fill='%234A3B34'/%3E%3Crect x='10' y='14' width='44' height='36' fill='%23E6C6A0' stroke='%231E293B' stroke-width='4'/%3E%3Crect x='20' y='26' width='7' height='7' fill='%231E293B'/%3E%3Crect x='37' y='26' width='7' height='7' fill='%231E293B'/%3E%3Crect x='26' y='36' width='12' height='10' fill='%234A3B34'/%3E%3Crect x='29' y='46' width='6' height='8' fill='%23F28FB0' stroke='%231E293B' stroke-width='2'/%3E%3C/svg%3E">
+<title>Sniff &amp; Fetch — Shelvi's remote job radar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -403,7 +403,8 @@
     display: flex; align-items: center; justify-content: space-between;
     padding: 10px 28px; gap: 12px;
   }
-  .brand { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 16.5px; letter-spacing: -0.01em; }
+  .brand { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 16.5px; letter-spacing: -0.01em; display: inline-flex; align-items: center; gap: 7px; }
+  .brand-dog { width: 22px; height: 22px; image-rendering: pixelated; }
   .topbar-actions { display: flex; gap: 10px; flex-wrap: wrap; }
   .topbar-btn {
     background: var(--card); color: var(--fg); border: 2px solid var(--fg); border-radius: 999px;
@@ -589,13 +590,23 @@
   }
   build('pug', PUG);
   build('pom', POM);
+  // Topbar logo reuses the same bitmaps; the nav doesn't exist yet when this
+  // script runs, so build those two after the DOM is parsed.
+  document.addEventListener('DOMContentLoaded', function () {
+    build('brandPug', PUG);
+    build('brandPom', POM);
+  });
   // Safety net: never leave the loader up forever if a fetch hangs.
   setTimeout(function () { document.getElementById('loader').classList.add('loader--hidden'); }, 20000);
 })();
 </script>
 
 <nav class="topbar">
-  <span class="brand">🎯 Shelvi's Job Hunt</span>
+  <span class="brand">
+    <svg class="brand-dog" id="brandPug" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+    <svg class="brand-dog" id="brandPom" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+    Sniff &amp; Fetch
+  </span>
   <span class="topbar-actions">
     <button class="topbar-btn" onclick="goToView('applied')">✓ Applied <span class="pill-num" id="appliedCount">0</span></button>
     <button class="topbar-btn" onclick="goToView('hidden')">✗ Hidden <span class="pill-num hidden-pill" id="hiddenCount">0</span></button>
@@ -609,7 +620,7 @@
   <div class="deco deco-dot" aria-hidden="true"></div>
   <div class="deco deco-squiggle" aria-hidden="true"></div>
   <div class="top-inner">
-    <div class="eyebrow"><span class="dot"></span>Personal Job Search Dashboard</div>
+    <div class="eyebrow"><span class="dot"></span>Sniff &amp; Fetch — personal remote-job radar</div>
     <h1>Where the RevOps skillset <span class="marker">actually goes</span></h1>
     <p class="lede">Eight target role archetypes — RevOps and systems work at the top, plus analytics, digital marketing, project delivery, and ops support. Every listing is remote-only, pulled live from job boards, the career pages of 31 remote-friendly companies, and open freelance projects on Freelancer.com. Contractor and worldwide-open roles rank higher and get badges.</p>
     <div class="controls">
