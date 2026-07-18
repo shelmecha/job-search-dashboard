@@ -1449,11 +1449,39 @@ window.toggleExpand = function(roleId) {
 const collapsedRoles = new Set();
 const REDUCE_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 window.closeRole = function(roleId) {
-  // No exit animation: register the badge and drop the card immediately.
+  // Badge appears in the dock right away; the card slides off to the left
+  // (no fade), then its empty slot collapses so neighbours glide over.
   collapsedRoles.add(roleId);
   renderHiddenDock(hiddenItemsList());
   const card = document.querySelector(`.role-card[data-role="${roleId}"]`);
-  if (card && card.parentNode) card.parentNode.removeChild(card);
+  if (!card) return;
+  const remove = () => { if (card.parentNode) card.parentNode.removeChild(card); };
+  const imp = (prop, val) => card.style.setProperty(prop, val, 'important');
+  const r = card.getBoundingClientRect();
+  imp('animation', 'none');
+  imp('pointer-events', 'none');
+  imp('transition', 'transform .4s ease-in');
+  requestAnimationFrame(() => {
+    imp('transform', `translateX(${-(r.left + r.width)}px)`);
+  });
+  setTimeout(() => {
+    imp('overflow', 'hidden');
+    imp('min-width', '0');
+    if (card.parentElement && card.parentElement.id === 'roleGrid') {
+      imp('transition', 'flex-basis .3s ease, margin-left .3s ease');
+      imp('flex-basis', '0px');
+      imp('margin-left', '-32px');   // absorb the flex gap too
+    } else {
+      // "Other ops" card lives in normal flow — collapse its height instead.
+      imp('height', r.height + 'px');
+      imp('box-sizing', 'border-box');
+      requestAnimationFrame(() => {
+        imp('transition', 'height .3s ease, margin .3s ease, padding .3s ease, border-width .3s ease');
+        imp('height', '0px'); imp('margin', '0'); imp('padding', '0'); imp('border-width', '0');
+      });
+    }
+    setTimeout(remove, 320);
+  }, 390);
 };
 window.openRole = function(roleId) {
   collapsedRoles.delete(roleId);
